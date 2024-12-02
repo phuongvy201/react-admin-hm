@@ -1,24 +1,53 @@
-import logo from './logo.svg';
-import './App.css';
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import routerAdmin, { routerSeller } from "./routers";
+import LayoutAdmin from "./layouts/layoutAdmin/LayoutAdmin";
+import LayoutSeller from "./layouts/layoutSeller/LayoutSeller";
+import Login from "./layouts/Login";
+import PrivateRoute from "./routers/PrivateRoute";
+import NotFound from "./components/NotFound";
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
+    <BrowserRouter>
+      {" "}
+      <Routes>
+        {" "}
+        <Route
+          path="/admin"
+          element={<PrivateRoute element={LayoutAdmin} roles={["admin"]} />}
         >
-          Learn React
-        </a>
-      </header>
-    </div>
+          {" "}
+          {routerAdmin.map((route, index) => {
+            const Page = route.component;
+            return (
+              <Route
+                path={route.path}
+                element={<PrivateRoute element={Page} roles={["admin"]} />}
+                key={index}
+              />
+            );
+          })}{" "}
+        </Route>{" "}
+        <Route
+          path="/seller"
+          element={<PrivateRoute element={LayoutSeller} roles={["employee"]} />}
+        >
+          {" "}
+          {routerSeller.map((route, index) => {
+            const Page = route.component;
+            return (
+              <Route
+                path={route.path}
+                element={<PrivateRoute element={Page} roles={["employee"]} />}
+                key={index}
+              />
+            );
+          })}{" "}
+        </Route>{" "}
+        <Route path="/login" element={<Login />} />{" "}
+        <Route path="*" element={<NotFound />} />
+      </Routes>{" "}
+    </BrowserRouter>
   );
 }
 

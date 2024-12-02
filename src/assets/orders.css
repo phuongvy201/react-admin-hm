@@ -1,0 +1,145 @@
+.order-item {
+    border: 1px solid #ddd;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+  }
+  
+  .product-image {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+  }
+  
+  .order-info {
+    flex: 1;
+  }
+  
+  .order-detail-item {
+    border-top: 1px solid #eee;
+    padding-top: 10px;
+  }
+  
+  .total-amount {
+    font-weight: bold;
+    font-size: 1.1em;
+  }
+  
+  .order-card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+  
+  .order-header {
+    background: #f8f9fa;
+    padding: 15px 20px;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .status-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+  
+  .status-confirmed {
+    background: #e7f7ee;
+    color: #28a745;
+  }
+  
+  .status-pending {
+    background: #fff3cd;
+    color: #856404;
+  }
+  
+  .seller-info,
+  .order-date {
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin-top: 5px;
+  }
+  
+  .order-body {
+    padding: 20px;
+  }
+  
+  .product-item {
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .product-item:last-child {
+    border-bottom: none;
+  }
+  
+  .product-image {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-right: 15px;
+  }
+  
+  .product-details {
+    flex: 1;
+  }
+  
+  .product-name {
+    margin-bottom: 8px;
+    color: #333;
+  }
+  
+  .variant-badge {
+    background: #f1f3f5;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    margin-right: 8px;
+    color: #495057;
+  }
+  
+  .quantity-price {
+    margin-top: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .quantity {
+    color: #6c757d;
+  }
+  
+  .price {
+    font-weight: 600;
+    color: #dc3545;
+  }
+  
+  .order-footer {
+    padding: 15px 20px;
+    background: #f8f9fa;
+    border-top: 1px solid #eee;
+  }
+  
+  .total-amount {
+    text-align: right;
+  }
+  
+  .total-label {
+    color: #6c757d;
+    margin-right: 10px;
+  }
+  
+  .total-value {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #dc3545;
+  }
+  
+  .order-actions .btn {
+    font-size: 0.85rem;
+  }
+  

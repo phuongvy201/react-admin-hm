@@ -3,12 +3,22 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@ckeditor/ckeditor5-build-classic": "^43.3.1",
+    "@ckeditor/ckeditor5-react": "^9.3.1",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
+    "axios": "^1.7.7",
+    "cropperjs": "^1.6.2",
+    "hm-admin": "file:",
     "react": "^18.3.1",
+    "react-cropper": "^2.3.3",
     "react-dom": "^18.3.1",
+    "react-image-crop": "^11.0.7",
+    "react-router-dom": "^6.28.0",
     "react-scripts": "5.0.1",
+    "react-toastify": "^10.0.6",
+    "sweetalert2": "^11.14.5",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
