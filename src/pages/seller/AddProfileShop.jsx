@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import Swal from "sweetalert2";
 import sellerService from "../../services/sellerService";
 
-export default function SellerList() {
+export default function AddProfileShop() {
   const [sellers, setSellers] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);

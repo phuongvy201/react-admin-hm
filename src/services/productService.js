@@ -5,13 +5,13 @@ const productService = {
     return httpAxios.get(`admin/products?page=${page}`);
   },
   addNewProduct: (data) => {
-    return httpAxios.post(`admin/products`, data);
+    return httpAxios.post(`seller/products`, data);
   },
   updateProduct: (id, data) => {
-    return httpAxios.post(`admin/products/${id}/update`, data);
+    return httpAxios.post(`seller/products/${id}/update`, data);
   },
   getProductColors: (id) => {
-    return httpAxios.get(`admin/products/${id}/colors`);
+    return httpAxios.get(`seller/products/${id}/colors`);
   },
   getProductSizes: (id) => {
     return httpAxios.get(`admin/products/${id}/sizes`);
@@ -27,6 +27,10 @@ const productService = {
   },
   deleteProduct: (id) => {
     return httpAxios.delete(`admin/products/${id}`);
+  },
+  searchProductBySeller: (data) => {
+    const queryParams = new URLSearchParams(data).toString();
+    return httpAxios.get(`seller/product/search?${queryParams}`);
   },
 };
 

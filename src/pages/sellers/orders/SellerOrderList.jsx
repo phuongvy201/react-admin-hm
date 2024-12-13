@@ -11,7 +11,7 @@ export default function SellerOrderList() {
       try {
         const response = await orderService.getOrderBySeller();
         if (response.data.success) {
-          setOrders(response.data.orders);
+          setOrders(response.data.data);
         } else {
           console.error("Failed to fetch orders:", response.data.message);
         }
@@ -52,51 +52,54 @@ export default function SellerOrderList() {
                         <h1>Order Review</h1>
                         <div className="order-summary mb-4">
                           {orders.map((order) => (
-                            <div className="order-header">
+                            <div key={order.id} className="order-header">
                               <div className="d-flex justify-content-end align-items-center">
-                                <h5 className="mb-0 mx-2">Order #{order.id}</h5>
+                                <h5 className="mb-0 mx-2">
+                                  <Link
+                                    className="text-dark"
+                                    to={`/seller/orders/${order.id}`}
+                                  >
+                                    Order #{order.id}
+                                  </Link>
+                                </h5>
                                 <span
-                                  className={` mx-2 status-badge ${
+                                  className={`mx-2 status-badge ${
                                     order.status === "1"
-                                      ? "status-confirmed"
-                                      : "status-pending"
+                                      ? "status-pending"
+                                      : "status-confirmed"
                                   }`}
                                 >
                                   {order.status === "1"
-                                    ? "Confirmed"
-                                    : "Pending"}
+                                    ? "Pending"
+                                    : "Confirmed"}
                                 </span>
-
-                                <div class="mx-2 color-palette-set">
-                                  <div class="bg-info color-palette p-1 small">
-                                    <span>Customer: {order.customer.name}</span>
-                                  </div>
-                                </div>
                               </div>
+
                               <div className="order-date">
-                                <i className="far fa-calendar-alt me-2"></i>
+                                <i className="far fa-calendar-alt me-2 mx-2"></i>
                                 <span>
                                   {new Date(
                                     order.created_at
                                   ).toLocaleDateString("vi-VN")}
                                 </span>
                               </div>
-                              {order.order_details &&
-                                order.order_details.map((detail) => (
-                                  <div key={detail.id} className="product-item">
+
+                              {order.details &&
+                                order.details.map((detail, index) => (
+                                  <div key={index} className="product-item">
                                     <div className="d-flex">
                                       <img
                                         src={
-                                          detail.product.image
-                                            ? urlImage + detail.product.image
+                                          detail.image
+                                            ? urlImage + detail.image
                                             : "default-image-url"
                                         }
-                                        alt={detail.product.name}
+                                        alt={detail.product_name}
                                         className="product-image"
                                       />
                                       <div className="product-details">
                                         <h6 className="product-name">
-                                          {detail.product.name}
+                                          {detail.product_name}
                                         </h6>
                                         <div className="product-variants">
                                           <span className="variant-badge">
@@ -108,26 +111,13 @@ export default function SellerOrderList() {
                                         </div>
                                         <div className="quantity-price">
                                           <span className="quantity">
-                                            ${detail.price} x{detail.quantity}
-                                          </span>
-                                          <span className="price">
-                                            $
-                                            {(
-                                              detail.price * detail.quantity
-                                            ).toFixed(2)}
+                                            ${detail.price} x {detail.quantity}
                                           </span>
                                         </div>
                                       </div>
                                     </div>
                                   </div>
                                 ))}
-                              <div className="order-footer">
-                                <div className="d-flex justify-content-end">
-                                  <span className="total-label text-danger fw-semibold fs-5">
-                                    Total amount: ${order.total_amount}
-                                  </span>
-                                </div>
-                              </div>
                             </div>
                           ))}
                         </div>

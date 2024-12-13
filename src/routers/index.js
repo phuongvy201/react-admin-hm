@@ -27,6 +27,10 @@ import SellerOrderList from "../pages/sellers/orders/SellerOrderList";
 import SellerPostList from "./../pages/sellers/posts/SellerPostList";
 import AddPost from "../pages/sellers/posts/AddPost";
 import PostUpdate from "../pages/sellers/posts/PostUpdate";
+import OrderDetail from "../pages/sellers/orders/OrderDetail";
+import ProfileShop from "../pages/seller/ProfileShop";
+import UpdateProfileShop from "../pages/sellers/profile/UpdateProfileShop";
+import SendMail from "../pages/mail/SendMail";
 
 const routerAdmin = [
   {
@@ -98,6 +102,14 @@ const routerAdmin = [
     path: "orders", // Đường dẫn cho route
     component: OrderList, // Component tương ứng cho route
   },
+  {
+    path: "profile-shop/:sellerId", // Đường dẫn cho route
+    component: ProfileShop, // Component tương ứng cho route
+  },
+  {
+    path: "sendMail", // Đường dẫn cho route
+    component: SendMail, // Component tương ứng cho route
+  },
 
   // Thêm các route khác nếu cần
 ];
@@ -141,6 +153,14 @@ const routerSeller = [
   {
     path: "updatePost/:id", // Đường dẫn cho route
     component: PostUpdate, // Component tương ứng cho route
+  },
+  {
+    path: "orders/:id", // Đường dẫn cho route
+    component: OrderDetail, // Component tương ứng cho route
+  },
+  {
+    path: "updateProfile", // Đường dẫn cho route
+    component: UpdateProfileShop, // Component tương ứng cho route
   },
 ];
 

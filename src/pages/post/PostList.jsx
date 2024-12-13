@@ -12,7 +12,7 @@ export default function PostList() {
   const fetchProducts = async (page = 1) => {
     try {
       setLoading(true);
-      const response = await postService.getAllPost();
+      const response = await postService.getPostByAdmin();
       console.log(response);
       if (response.data.status === "success") {
         setPosts(response.data.data);

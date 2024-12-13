@@ -208,7 +208,6 @@ export default function AddProductBySeller() {
             aria-hidden="true"
           >
             <option selected>Choose a size</option>
-            <option selected>Choose a size</option>
             {SIZE_OPTIONS.map((size) => (
               <option key={size} value={size}>
                 {size}
@@ -489,7 +488,7 @@ export default function AddProductBySeller() {
                             "https://cdn-icons-png.flaticon.com/128/179/179378.png"
                           }
                           alt="cropped"
-                          style={{ width: "60%" }}
+                          style={{ width: "40%" }}
                         />
                       </div>
                       <div className="d-flex justify-content-center">

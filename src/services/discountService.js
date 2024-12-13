@@ -16,8 +16,8 @@ const discountService = {
   getDiscountById: (id) => {
     return httpAxios.get(`admin/discounts/${id}`);
   },
-  getDiscountsBySeller: (id) => {
-    return httpAxios.get(`seller/discounts/seller/${id}`);
+  getDiscountsBySeller: (sellerId) => {
+    return httpAxios.get(`seller/discounts/seller/${sellerId}`);
   },
   deleteDiscount: (id) => {
     return httpAxios.delete(`discounts/${id}`);

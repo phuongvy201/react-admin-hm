@@ -238,7 +238,7 @@ export default function NavBar() {
                         </li>
                       </ul>
                     </li>
-                    {/* <li className="nav-item">
+                    <li className="nav-item">
                       <Link to="#" className="nav-link">
                         <i className="fa-solid fa-folder nav-icon" />
                         <p>
@@ -275,7 +275,27 @@ export default function NavBar() {
                           </Link>
                         </li>
                       </ul>
-                    </li> */}
+                    </li>
+                    <li className="nav-item">
+                      <Link to="#" className="nav-link">
+                        <i className="fa-solid fa-folder nav-icon" />
+                        <p>
+                          Mail
+                          <i className="fas fa-angle-left right" />
+                        </p>
+                      </Link>
+                      <ul className="nav nav-treeview">
+                        <li className="nav-item">
+                          <Link
+                            to="/admin/sendMail"
+                            className="nav-link"
+                          >
+                            <i className="far fa-circle nav-icon" />
+                            <p>Send Mail</p>
+                          </Link>
+                        </li>
+                      </ul>
+                    </li>
                     <li className="nav-item">
                       <Link to="/admin/discounts" className="nav-link">
                         <i className="fa-solid fa-percent nav-icon" />

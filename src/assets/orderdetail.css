@@ -1,0 +1,55 @@
+.header-order {
+  text-align: center;
+  margin-bottom: 20px;
+}
+.header-order h1 {
+  margin: 0;
+  font-size: 2em;
+}
+.order-info,
+.recipient-info,
+.tracking-info {
+  margin-bottom: 20px;
+}
+.order-info h2,
+.recipient-info h2,
+.tracking-info h2 {
+  font-size: 1.5em;
+  margin-bottom: 10px;
+}
+.order-items {
+  display: flex;
+  flex-wrap: wrap;
+}
+.order-item {
+  width: 30%;
+  margin: 1.5%;
+  padding: 10px;
+  background-color: #f9f9f9;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+}
+.order-item img {
+  width: 100%;
+  height: auto;
+}
+.order-item p {
+  margin: 10px 0 0;
+}
+.tracking-info input[type="text"] {
+  width: calc(100% - 100px);
+  padding: 10px;
+  margin-right: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+.tracking-info button {
+  padding: 10px 20px;
+  border: none;
+  background-color: #28a745;
+  color: #fff;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.tracking-info button:hover {
+  background-color: #218838;
+}

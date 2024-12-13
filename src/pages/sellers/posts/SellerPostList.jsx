@@ -105,84 +105,89 @@ export default function SellerPostList() {
           </div>
         </div>
       </section>
-
       <section className="content">
         <div className="container-fluid">
           <div className="row">
             <div className="col-12">
               <div className="card">
                 <div className="card-body">
-                  <table className="table table-bordered">
-                    <thead>
-                      <tr>
-                        <th style={{ width: 10 }}>ID</th>
-                        <th style={{ width: 250 }}>Post</th>
-                        <th>Topic</th>
-                        <th style={{ width: 200 }}>Created_at</th>
-                        <th style={{ width: 200 }}>Operation</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {posts.map((post) => (
-                        <tr key={post.id}>
-                          <td>{post.id}</td>
-                          <td>
-                            <div>
-                              <Link
-                                to={`/post/${post.id}`}
-                                className="text-decoration-none text-dark mb-2"
-                              >
-                                {post.title}
-                              </Link>
-                            </div>
-                            {post.image && (
-                              <div>
-                                <img
-                                  className="img-fluid"
-                                  style={{ maxHeight: "100px" }}
-                                  src={urlImage + post.image}
-                                  alt={post.name}
-                                />
-                              </div>
-                            )}
-                          </td>
-                          <td>{post.topic && post.topic.name}</td>
-                          <td>
-                            {new Date(post.created_at).toLocaleDateString()}
-                          </td>
-                          <td>
-                            <button
-                              className="btn btn-danger btn-sm mx-1"
-                              title="Delete"
-                              onClick={() => handleDeleteDiscount(post.id)}
-                            >
-                              <i className="fa-solid fa-trash-can" />
-                            </button>
-
-                            <button
-                              className={`btn ${
-                                post.status ? "btn-success" : "btn-danger"
-                              } btn-sm mx-1`}
-                              onClick={() => handleUpdateStatus(post.id)}
-                            >
-                              <i
-                                className={`fa-solid ${
-                                  post.status ? "fa-toggle-on" : "fa-toggle-off"
-                                }`}
-                              />
-                            </button>
-                            <Link
-                              to={`/seller/updatePost/${post.id}`}
-                              className="btn btn-info btn-sm mx-1"
-                              title="View"
-                            >
-                              <i class="fa-solid fa-pen-to-square"></i>
-                            </Link>
-                          </td>
+                  {posts.length === 0 ? (
+                    <p>No posts available.</p>
+                  ) : (
+                    <table className="table table-bordered">
+                      <thead>
+                        <tr>
+                          <th style={{ width: 10 }}>ID</th>
+                          <th style={{ width: 250 }}>Post</th>
+                          <th>Topic</th>
+                          <th style={{ width: 200 }}>Created_at</th>
+                          <th style={{ width: 200 }}>Operation</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {posts.map((post) => (
+                          <tr key={post.id}>
+                            <td>{post.id}</td>
+                            <td>
+                              <div>
+                                <Link
+                                  to={`/post/${post.id}`}
+                                  className="text-decoration-none text-dark mb-2"
+                                >
+                                  {post.title}
+                                </Link>
+                              </div>
+                              {post.image && (
+                                <div>
+                                  <img
+                                    className="img-fluid"
+                                    style={{ maxHeight: "100px" }}
+                                    src={urlImage + post.image}
+                                    alt={post.name}
+                                  />
+                                </div>
+                              )}
+                            </td>
+                            <td>{post.topic && post.topic.name}</td>
+                            <td>
+                              {new Date(post.created_at).toLocaleDateString()}
+                            </td>
+                            <td>
+                              <button
+                                className="btn btn-danger btn-sm mx-1"
+                                title="Delete"
+                                onClick={() => handleDeleteDiscount(post.id)}
+                              >
+                                <i className="fa-solid fa-trash-can" />
+                              </button>
+
+                              <button
+                                className={`btn ${
+                                  post.status ? "btn-success" : "btn-danger"
+                                } btn-sm mx-1`}
+                                onClick={() => handleUpdateStatus(post.id)}
+                              >
+                                <i
+                                  className={`fa-solid ${
+                                    post.status
+                                      ? "fa-toggle-on"
+                                      : "fa-toggle-off"
+                                  }`}
+                                />
+                              </button>
+                              <Link
+                                to={`/seller/updatePost/${post.id}`}
+                                className="btn btn-info btn-sm mx-1"
+                                title="View"
+                              >
+                                <i className="fa-solid fa-pen-to-square"></i>
+                              </Link>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
                 </div>
                 {/* <div className="card-footer clearfix">
                   <ul className="pagination pagination-md m-0 float-right">
@@ -201,7 +206,7 @@ export default function SellerPostList() {
                         «
                       </button>
                     </li>
-
+  
                     {[...Array(pagination.last_page)].map((_, index) => (
                       <li
                         key={index + 1}
@@ -217,7 +222,7 @@ export default function SellerPostList() {
                         </button>
                       </li>
                     ))}
-
+  
                     <li
                       className={`page-item ${
                         pagination.current_page === pagination.last_page

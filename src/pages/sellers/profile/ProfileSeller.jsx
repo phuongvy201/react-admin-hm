@@ -1,28 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import profileService from "../../../services/profileService";
+import { urlImage } from "../../../config";
 
 export default function ProfileSeller() {
   const sellerId = JSON.parse(localStorage.getItem("user")).id;
   const [shopInfo, setShopInfo] = useState(null);
-  const [previewImage, setPreviewImage] = useState(null); // Thêm state mới
   useEffect(() => {
     profileService.getShopInfo(sellerId).then((res) => {
       setShopInfo(res.data);
     });
   }, []);
-
-  // Thêm hàm xử lý khi chọn file
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewImage(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
   return (
     <div className="content-wrapper" style={{ minHeight: "1604.8px" }}>
       {/* Content Header (Page header) */}
@@ -48,12 +36,9 @@ export default function ProfileSeller() {
       <section className="content">
         <div className="container-fluid">
           <div className="row justify-content-center">
-        
             <div className="col-md-6">
-                
               {/* Profile Image */}
               <div className="card card-info card-outline">
-                
                 <div className="card-body box-profile">
                   <div className="d-flex justify-content-end">
                     <Link className="text-dark">
@@ -63,28 +48,14 @@ export default function ProfileSeller() {
                   <div className="text-center">
                     <img
                       className="profile-user-img img-fluid img-circle"
-                      src={previewImage || shopInfo?.shop.logo_url}
+                      src={urlImage + shopInfo?.shop.logo_url}
+                      style={{
+                        objectFit: "cover",
+                        width: "100px", // Đặt kích thước phù hợp với khung
+                        height: "100px", // Đặt kích thước phù hợp với khung
+                      }}
                       alt="Userprofilepicture"
                     />
-                    <div className="mt-2">
-                      <input
-                        type="file"
-                        id="logo-upload"
-                        accept="image/*"
-                        className="d-none"
-                        onChange={handleImageChange}
-                      />
-                      <label
-                        htmlFor="logo-upload"
-                        className="btn btn-sm btn-info"
-                      >
-                        <small>
-                          {" "}
-                          <i class="fa-regular fa-image "></i>
-                          &emsp;Đổi ảnh đại diện
-                        </small>
-                      </label>
-                    </div>
                   </div>
                   <h3 className="profile-username text-center">
                     {shopInfo?.shop.shop_name}
@@ -103,10 +74,6 @@ export default function ProfileSeller() {
                         {shopInfo?.products_count}
                       </Link>
                     </li>
-                    <li className="list-group-item">
-                      <b>Favorites</b>{" "}
-                      <Link className="float-right">13,287</Link>
-                    </li>
                   </ul>
                 </div>
                 {/* /.card-body */}
@@ -115,7 +82,7 @@ export default function ProfileSeller() {
               {/* About Me Box */}
               <div className="card card-info">
                 <div className="card-header">
-                  <h3 className="card-title">About Me</h3>
+                  <h3 className="card-title">Seller Infomation</h3>
                 </div>
                 {/* /.card-header */}
                 <div className="card-body">

@@ -25,6 +25,9 @@ const postService = {
   getPostBySeller: () => {
     return httpAxios.get(`seller/posts`);
   },
+  getPostByAdmin: () => {
+    return httpAxios.get(`admin/posts`);
+  },
   addPosts: (postData) => {
     return httpAxios.post(`seller/post`, postData);
   },

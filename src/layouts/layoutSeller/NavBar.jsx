@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import authService from "../../services/authService";
 import profileService from "../../services/profileService";
+import { urlImage } from "./../../config";
 
 export default function NavBar() {
   const sellerId = JSON.parse(localStorage.getItem("user")).id;
@@ -24,10 +25,17 @@ export default function NavBar() {
   };
 
   useEffect(() => {
-    profileService.getShopInfo(sellerId).then((res) => {
-      setShopInfo(res.data);
-    });
-  }, []);
+    if (sellerId) {
+      profileService
+        .getShopInfo(sellerId)
+        .then((res) => {
+          setShopInfo(res.data);
+        })
+        .catch((err) => {
+          console.error("Error fetching shop info:", err);
+        });
+    }
+  }, [sellerId]);
   const navigate = useNavigate();
   const handleLogout = async () => {
     try {
@@ -84,11 +92,20 @@ export default function NavBar() {
                 {/* Sidebar user panel (optional) */}
                 <div className="user-panel mt-3 pb-3 mb-3 d-flex">
                   <div className="image">
-                    <img
-                      src={shopInfo?.shop.logo_url}
-                      className="img-circle elevation-2"
-                      alt="UserImage"
-                    />
+                    {shopInfo?.shop?.logo_url ? (
+                      <img
+                        src={urlImage + shopInfo.shop.logo_url}
+                        className="img-circle elevation-2"
+                        alt="UserImage"
+                        style={{
+                          objectFit: "cover",
+                          width: "30px",
+                          height: "30px",
+                        }}
+                      />
+                    ) : (
+                      ""
+                    )}
                   </div>
                   <div className="info">
                     <Link to="/seller/profile" className="d-block">
@@ -220,6 +237,18 @@ export default function NavBar() {
                           </Link>
                         </li>
                       </ul>
+                    </li>
+                    <li className="nav-item">
+                      <Link
+                        to="/seller/updateProfile"
+                        onClick={() => toggleMenu("order")}
+                        className={`nav-link ${
+                          activeMenus.order ? "active" : ""
+                        }`}
+                      >
+                        <i className="nav-icon fa-regular fa-file-lines" />
+                        <p>Shop Profile</p>
+                      </Link>
                     </li>
                     <li className="nav-header">LABELS</li>
                     <li className="nav-item">
