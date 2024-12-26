@@ -19,18 +19,24 @@ const productService = {
   getProductById: (id) => {
     return httpAxios.get(`admin/products/${id}`);
   },
-  getProductBySeller: (id) => {
-    return httpAxios.get(`seller/products/seller/${id}`);
+  getProductBySeller: (page = 1) => {
+    return httpAxios.get(`seller/products/seller?page=${page}`);
   },
   updateProductStatus: (id) => {
     return httpAxios.post(`products/${id}/status`);
   },
   deleteProduct: (id) => {
-    return httpAxios.delete(`admin/products/${id}`);
+    return httpAxios.delete(`products/${id}`);
   },
   searchProductBySeller: (data) => {
     const queryParams = new URLSearchParams(data).toString();
     return httpAxios.get(`seller/product/search?${queryParams}`);
+  },
+  copyProduct: (id) => {
+    return httpAxios.post(`seller/products/${id}/copy`);
+  },
+  importProduct: (data) => {
+    return httpAxios.post(`seller/products/import`, data);
   },
 };
 

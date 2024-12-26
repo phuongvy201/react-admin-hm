@@ -4,6 +4,7 @@ import axios from "axios";
 import authService from "../../services/authService";
 import profileService from "../../services/profileService";
 import { urlImage } from "./../../config";
+import logo from "../../assets/imgs/bluprinter logo.png";
 
 export default function NavBar() {
   const sellerId = JSON.parse(localStorage.getItem("user")).id;
@@ -18,10 +19,13 @@ export default function NavBar() {
   });
 
   const toggleMenu = (menuName) => {
-    setActiveMenus((prev) => ({
-      ...prev,
-      [menuName]: !prev[menuName],
-    }));
+    setActiveMenus((prev) => {
+      const newActiveMenus = Object.keys(prev).reduce((acc, key) => {
+        acc[key] = key === menuName ? !prev[key] : false;
+        return acc;
+      }, {});
+      return newActiveMenus;
+    });
   };
 
   useEffect(() => {
@@ -55,7 +59,7 @@ export default function NavBar() {
         {/* Brand Logo */}
         <Link to="index3.html" className="brand-link">
           <img
-            src="https://printerval.com/assets/images/logo.svg"
+            src={logo}
             alt="AdminLTE Logo"
             className="brand-image  elevation-3"
             style={{ opacity: ".8" }}
@@ -138,6 +142,42 @@ export default function NavBar() {
                           <span className="right badge badge-danger">New</span>
                         </p>
                       </Link>
+                    </li>
+                    <li className="nav-item">
+                      <Link
+                        onClick={() => toggleMenu("template")}
+                        className={`nav-link ${
+                          activeMenus.template ? "active" : ""
+                        }`}
+                      >
+                        <i className="fa-solid fa-box-open nav-icon" />
+                        <p>
+                          Template
+                          <i className="fas fa-angle-left right" />
+                        </p>
+                      </Link>
+                      <ul
+                        className="nav nav-treeview"
+                        style={{
+                          display: activeMenus.template ? "block" : "none",
+                        }}
+                      >
+                        <li className="nav-item">
+                          <Link to="/seller/templates" className="nav-link">
+                            <i className="far fa-circle nav-icon" />
+                            <p>Template List</p>
+                          </Link>
+                        </li>
+                        <li className="nav-item">
+                          <Link
+                            to="/seller/templates/add-template"
+                            className="nav-link"
+                          >
+                            <i className="far fa-circle nav-icon" />
+                            <p>Add Template</p>
+                          </Link>
+                        </li>
+                      </ul>
                     </li>
                     <li className="nav-item">
                       <Link
@@ -241,9 +281,9 @@ export default function NavBar() {
                     <li className="nav-item">
                       <Link
                         to="/seller/updateProfile"
-                        onClick={() => toggleMenu("order")}
+                        onClick={() => toggleMenu("profile")}
                         className={`nav-link ${
-                          activeMenus.order ? "active" : ""
+                          activeMenus.profile ? "active" : ""
                         }`}
                       >
                         <i className="nav-icon fa-regular fa-file-lines" />

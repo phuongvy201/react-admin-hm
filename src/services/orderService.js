@@ -13,6 +13,9 @@ const orderService = {
   updateStatus: (id, data) => {
     return httpAxios.post(`seller/orders/${id}/status`, data);
   },
+  getOrderDetail: (id) => {
+    return httpAxios.get(`seller/orders/${id}`);
+  },
 };
 
 export default orderService;

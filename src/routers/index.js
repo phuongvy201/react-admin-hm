@@ -31,6 +31,11 @@ import OrderDetail from "../pages/sellers/orders/OrderDetail";
 import ProfileShop from "../pages/seller/ProfileShop";
 import UpdateProfileShop from "../pages/sellers/profile/UpdateProfileShop";
 import SendMail from "../pages/mail/SendMail";
+import TemplateList from "../pages/sellers/template/TemplateList";
+import AddTemplate from "../pages/sellers/template/AddTemplate";
+import AddTopic from "../pages/topic/AddTopic";
+import TopicList from "../pages/topic/TopicList";
+import UpdateTemplate from "../pages/sellers/template/UpdateTemplate";
 
 const routerAdmin = [
   {
@@ -110,6 +115,14 @@ const routerAdmin = [
     path: "sendMail", // Đường dẫn cho route
     component: SendMail, // Component tương ứng cho route
   },
+  {
+    path: "addTopic", // Đường dẫn cho route
+    component: AddTopic, // Component tương ứng cho route
+  },
+  {
+    path: "topics", // Đường dẫn cho route
+    component: TopicList, // Component tương ứng cho route
+  },
 
   // Thêm các route khác nếu cần
 ];
@@ -161,6 +174,19 @@ const routerSeller = [
   {
     path: "updateProfile", // Đường dẫn cho route
     component: UpdateProfileShop, // Component tương ứng cho route
+  },
+
+  {
+    path: "templates", // Đường dẫn cho route
+    component: TemplateList, // Component tương ứng cho route
+  },
+  {
+    path: "templates/add-template", // Đường dẫn cho route
+    component: AddTemplate, // Component tương ứng cho route
+  },
+  {
+    path: "templates/update-template/:id", // Đường dẫn cho route
+    component: UpdateTemplate, // Component tương ứng cho route
   },
 ];
 

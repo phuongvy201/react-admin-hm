@@ -440,7 +440,11 @@ export default function EditProduct() {
     } else if (color.image instanceof File) {
       return URL.createObjectURL(color.image);
     } else if (color.image) {
-      return urlImage + color.image;
+      if (color.image.startsWith("http") || color.image.startsWith("https")) {
+        return color.image;
+      } else {
+        return urlImage + color.image;
+      }
     }
     return "https://cdn-icons-png.flaticon.com/128/179/179378.png";
   };
@@ -553,6 +557,8 @@ export default function EditProduct() {
                           src={
                             product.image instanceof File
                               ? URL.createObjectURL(product.image)
+                              : product.image?.startsWith("http")
+                              ? product.image
                               : urlImage + product.image
                           }
                           alt="cropped"

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import authService from "../../services/authService";
+import logo from "../../assets/imgs/bluprinter logo.png";
 
 export default function NavBar() {
   const navigate = useNavigate();
@@ -48,8 +49,10 @@ export default function NavBar() {
         {/* Brand Logo */}
         <Link to="index3.html" className="brand-link">
           <img
-            src="https://printerval.com/assets/images/logo.svg"
+            src={logo}
             alt="AdminLTE Logo"
+            width={100}
+            height={100}
             className="brand-image  elevation-3"
             style={{}}
           />
@@ -249,7 +252,7 @@ export default function NavBar() {
                       <ul className="nav nav-treeview">
                         <li className="nav-item">
                           <Link
-                            to="pages/forms/general.html"
+                            to="/admin/topics"
                             className="nav-link"
                           >
                             <i className="far fa-circle nav-icon" />
@@ -257,21 +260,9 @@ export default function NavBar() {
                           </Link>
                         </li>
                         <li className="nav-item">
-                          <Link
-                            to="pages/forms/advanced.html"
-                            className="nav-link"
-                          >
+                          <Link to="/admin/addTopic" className="nav-link">
                             <i className="far fa-circle nav-icon" />
                             <p>Add Topic</p>
-                          </Link>
-                        </li>
-                        <li className="nav-item">
-                          <Link
-                            to="pages/forms/editors.html"
-                            className="nav-link"
-                          >
-                            <i className="far fa-circle nav-icon" />
-                            <p>Topic Trash</p>
                           </Link>
                         </li>
                       </ul>
@@ -286,10 +277,7 @@ export default function NavBar() {
                       </Link>
                       <ul className="nav nav-treeview">
                         <li className="nav-item">
-                          <Link
-                            to="/admin/sendMail"
-                            className="nav-link"
-                          >
+                          <Link to="/admin/sendMail" className="nav-link">
                             <i className="far fa-circle nav-icon" />
                             <p>Send Mail</p>
                           </Link>

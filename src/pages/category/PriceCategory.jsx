@@ -169,7 +169,7 @@ export default function PriceCategory() {
                                 <img
                                   className="img-fluid"
                                   style={{ maxHeight: "100px" }}
-                                  src={urlImage + "images/" + category.image}
+                                  src={urlImage + category.image}
                                   alt={category.name}
                                 />
                               </div>

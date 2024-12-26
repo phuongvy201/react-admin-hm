@@ -23,11 +23,11 @@ export default function OrderDetail() {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const response = await orderService.getOrderById(parseInt(id));
-        setOrder(response.data.data.order);
-        setOrderDetail(response.data.data.order_details);
-        setTrackingNumber(response.data.data.order.shipping.tracking_number);
-        console.log(response.data.data.order.shipping.tracking_number);
+        const response = await orderService.getOrderDetail(parseInt(id));
+        setOrder(response.data.order);
+        setOrderDetail(response.data.order.order_details);
+        setTrackingNumber(response.data.order.shipping.tracking_number);
+        console.log(response.data.order.shipping.tracking_number);
       } catch (error) {
         console.error("Error fetching orders:", error.message);
       }
@@ -47,11 +47,14 @@ export default function OrderDetail() {
         tracking_number: trackingNumber,
       });
 
-      // Cập nhật trạng thái đơn hàng
-      const updatedStatus = {
-        status: 2,
-      }; // Ví dụ: 2 có thể là trạng thái "Processing"
-      await orderService.updateStatus(order.order_id, updatedStatus); // Gọi API để cập nhật trạng thái
+      // Kiểm tra nếu trạng thái đơn hàng là 1 thì mới cập nhật
+      if (order.status === 1) {
+        // Cập nhật trạng thái đơn hàng
+        const updatedStatus = {
+          status: 2,
+        }; // Ví dụ: 2 có thể là trạng thái "Processing"
+        await orderService.updateStatus(order.id, updatedStatus); // Gọi API để cập nhật trạng thái
+      }
 
       // Hiển thị thông báo thành công
       Toast.fire({
@@ -80,7 +83,7 @@ export default function OrderDetail() {
         </div>
         <div className="order-info ">
           <h2>Order Information</h2>
-          <p>Order Number: #{order?.order_id}</p>
+          <p>Order Number: #{order?.id}</p>
           <p>
             Order Date:{" "}
             {new Date(order?.created_at).toLocaleDateString("vi-VN")}
@@ -104,8 +107,12 @@ export default function OrderDetail() {
                   alt={`${detail.product_name}`}
                   height={300}
                   src={
-                    detail.image
-                      ? `${urlImage}${detail.image}` // Ghép đường dẫn URL ảnh
+                    detail.product?.image
+                      ? detail.product.image instanceof File
+                        ? URL.createObjectURL(detail.product.image)
+                        : detail.product.image?.startsWith("http")
+                        ? detail.product.image
+                        : urlImage + detail.product.image
                       : "default-image-url"
                   }
                   width={300}

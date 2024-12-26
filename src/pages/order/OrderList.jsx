@@ -6,18 +6,26 @@ import { Link } from "react-router-dom";
 
 export default function OrderList() {
   const [orders, setOrders] = useState([]);
+  const [error, setError] = useState(null); // State to hold error message
+
   useEffect(() => {
     const fetchOrders = async () => {
       try {
         const response = await orderService.getAllOrders();
-        setOrders(response.data.data);
+        if (response.data && response.data.orders) {
+          setOrders(response.data.orders);
+        } else {
+          setOrders([]);
+          setError("Không tìm thấy đơn hàng nào.");
+        }
       } catch (error) {
-        console.error("Error fetching orders:", error.message);
+        console.error("Lỗi khi lấy đơn hàng:", error.message);
+        setError(error.message);
       }
     };
-
     fetchOrders();
   }, []);
+
   return (
     <div className="content-wrapper" style={{ minHeight: "1302.4px" }}>
       <section className="content-header">
@@ -37,14 +45,18 @@ export default function OrderList() {
               <div className="card">
                 <div className="card-body">
                   <div className="account-container">
-                    {orders.length === 0 && (
+                    {error && (
+                      <div className="alert alert-danger">
+                        {error} {/* Display error message */}
+                      </div>
+                    )}
+                    {!error && orders.length === 0 && (
                       <>
                         <div className="account-breadcrumb">
                           <Link to="/"> Home </Link>
                           <i className="fas fa-chevron-right"> </i>
                           <span> Orders</span>
                         </div>
-
                         <h1>No orders found</h1>
                         <hr />
                       </>
@@ -54,18 +66,20 @@ export default function OrderList() {
                         <h1>Order Review</h1>
                         <div className="order-summary mb-4">
                           {orders.map((order) => (
-                            <div className="order-header" key={order.order_id}>
+                            <div className="order-header" key={order.id}>
                               <div className="d-flex  justify-content-end align-items-center">
-                                <h5 className="mb-0 mx-2">Order #{order.order_id}</h5>
+                                <h5 className="mb-0 mx-2">Order #{order.id}</h5>
                                 <div className="product-variants d-flex justify-content-end">
                                   <span className="variant-badge bg-lightblue color-palette">
-                                    Seller: {order.seller.seller_name}
+                                    Seller: {order?.seller?.name}
                                   </span>
                                 </div>
                                 {order.customer_id !== null && (
                                   <div className="mx-2 color-palette-set">
                                     <div className="bg-info color-palette p-1 small">
-                                      <span>Customer: {order.customer_id}</span>
+                                      <span>
+                                        Customer: {order?.customer_id}
+                                      </span>
                                     </div>
                                   </div>
                                 )}
@@ -89,8 +103,8 @@ export default function OrderList() {
                                   ).toLocaleDateString("vi-VN")}
                                 </span>
                               </div>
-                              {order.details &&
-                                order.details.map((detail) => (
+                              {order.order_details &&
+                                order.order_details.map((detail) => (
                                   <div
                                     key={detail.product_id}
                                     className="product-item"
@@ -98,30 +112,25 @@ export default function OrderList() {
                                     <div className="d-flex">
                                       <img
                                         src={
-                                          detail.image
-                                            ? urlImage + detail.image
+                                          detail.product.image
+                                            ? urlImage + detail?.product?.image
                                             : "default-image-url"
                                         }
-                                        alt={detail.product_name}
+                                        alt="ựdjkw"
                                         className="product-image"
                                       />
-
                                       <div className="product-details">
                                         <h6 className="product-name">
-                                          {detail.product_name}
+                                          {detail?.product?.name}
                                         </h6>
                                         <div className="product-variants">
-                                          {" "}
                                           <span className="variant-badge">
-                                            {" "}
-                                            Size: {detail.attributes?.size}{" "}
-                                          </span>{" "}
+                                            Size: {detail.attributes?.size}
+                                          </span>
                                           <span className="variant-badge">
-                                            {" "}
                                             Color: {detail.attributes?.color}
-                                          </span>{" "}
+                                          </span>
                                         </div>
-
                                         <div className="quantity-price">
                                           <span className="quantity text-danger">
                                             ${detail.price} x {detail.quantity}

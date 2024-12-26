@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { CKEditor } from "@ckeditor/ckeditor5-react";
 import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
 import { Cropper } from "react-cropper";
@@ -14,10 +14,12 @@ import {
 } from "../../../constants/productConstants";
 import categoryService from "../../../services/categoryService";
 import productService from "../../../services/productService";
+import { urlImage } from "../../../config";
 
 export default function AddProductBySeller() {
   const [description, setDescription] = useState("");
   const [image, setImage] = useState("");
+
   const [cropData, setCropData] = useState("");
   const [cropper, setCropper] = useState(null);
   const [mainImage, setMainImage] = useState(null);
@@ -30,18 +32,19 @@ export default function AddProductBySeller() {
   const [sizeBlocks, setSizeBlocks] = useState([]);
   const [categories, setCategories] = useState([]);
   const sellerId = JSON.parse(localStorage.getItem("user")).id;
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const response = await categoryService.getFlatCategories();
-        setCategories(response.data.data); // Giả sử API trả về data trong response.data.data
-      } catch (error) {
-        console.error("Error fetching categories:", error);
-      }
-    };
 
-    fetchCategories();
+  const fetchCategories = useCallback(async () => {
+    try {
+      const response = await categoryService.getFlatCategories();
+      setCategories(response.data.data);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
 
   useEffect(() => {
     // Khởi tạo Toast của SweetAlert2
@@ -76,13 +79,34 @@ export default function AddProductBySeller() {
   };
 
   // Xử lý khi crop
-  const getCropData = () => {
-    if (cropper) {
-      const cropDataUrl = cropper.getCroppedCanvas().toDataURL();
-      setCropData(cropDataUrl);
-      setShowCropper(false);
+  const handleImageCrop = (
+    cropperInstance,
+    setCropDataFunc,
+    setShowCropperFunc
+  ) => {
+    if (cropperInstance) {
+      const cropDataUrl = cropperInstance.getCroppedCanvas().toDataURL();
+      setCropDataFunc(cropDataUrl);
+      setShowCropperFunc(false);
     }
   };
+
+  const getCropData = () =>
+    handleImageCrop(cropper, setCropData, setShowCropper);
+  const getColorCropData = () =>
+    handleImageCrop(
+      colorCropper,
+      (url) => {
+        setColorCropData((prev) => ({
+          ...prev,
+          [selectedColorId]: url,
+        }));
+        const img = document.getElementById(`img_${selectedColorId}`);
+        if (img) img.src = url;
+      },
+      setShowColorCropper
+    );
+
   // Thêm hàm xử lý crop ảnh màu
   const handleColorImageChange = (e, uniqueId) => {
     e.preventDefault();
@@ -97,103 +121,22 @@ export default function AddProductBySeller() {
       reader.readAsDataURL(file);
     }
   };
-  // Thêm hàm xử lý khi crop
-  const getColorCropData = () => {
-    if (colorCropper && selectedColorId) {
-      const cropDataUrl = colorCropper.getCroppedCanvas().toDataURL();
-      console.log("Cropped color image for ID:", selectedColorId); // Log để kiểm tra
-      console.log("Crop data URL:", cropDataUrl); // Log để kiểm tra
-
-      setColorCropData((prev) => {
-        const newData = {
-          ...prev,
-          [selectedColorId]: cropDataUrl,
-        };
-        console.log("Updated colorCropData:", newData); // Log để kiểm tra
-        return newData;
-      });
-
-      // Cập nhật preview
-      const img = document.getElementById(`img_${selectedColorId}`);
-      if (img) {
-        img.src = cropDataUrl;
-      }
-      setShowColorCropper(false);
-    }
-  };
 
   const handleAddColor = () => {
-    const uniqueId = "upload_" + Date.now();
-    const newBlock = (
-      <div className="row" key={uniqueId} data-unique-id={uniqueId}>
-        <div className="form-group col-12 col-sm-5 d-flex align-items-center mt-2">
-          <select
-            className="form-control select-option-color"
-            style={{ width: "100%" }}
-            data-select2-id="25"
-            tabindex="-1"
-            aria-hidden="true"
-          >
-            <option selected>Choose a color</option>
-            {COLOR_OPTIONS.map((option) => (
-              <option
-                key={option.value}
-                value={option.value}
-                data-color={option.color}
-              >
-                {option.value}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="col-12 col-sm-7">
-          <div className="row">
-            <div className="col-sm-6 d-flex align-items-center">
-              <input
-                id={uniqueId}
-                type="file"
-                className="form-control border-0 d-none"
-                accept="image/*"
-                onChange={(e) => handleColorImageChange(e, uniqueId)}
-              />
-              <div className="input-group-append">
-                <label
-                  htmlFor={uniqueId}
-                  className="btn btn-light m-0 rounded-pill px-4"
-                >
-                  <i className="fa fa-cloud-upload mr-2 text-muted"></i>
-                  <small className="text-uppercase font-weight-bold text-muted">
-                    Choose file
-                  </small>
-                </label>
-              </div>
-            </div>
-            <div className="col-sm-6">
-              <div className="image-area mt-2">
-                <img
-                  id={`img_${uniqueId}`}
-                  src={
-                    colorCropData[uniqueId] ||
-                    "https://cdn-icons-png.flaticon.com/128/179/179378.png"
-                  }
-                  alt=""
-                  className="img-fluid rounded shadow-sm mx-auto d-block"
-                  style={{
-                    width: IMAGE_DIMENSIONS.width,
-                    height: IMAGE_DIMENSIONS.height,
-                    objectFit: "cover",
-                    borderRadius: "8px",
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    // Tạo uniqueId duy nhất bằng cách kết hợp Date.now() và giá trị ngẫu nhiên
+    const uniqueId =
+      "upload_" + Date.now() + Math.random().toString(36).substr(2, 9);
+
+    const newBlock = {
+      uniqueId,
+      colorValue: "",
+      colorCode: "",
+      image: "https://cdn-icons-png.flaticon.com/128/179/179378.png",
+    };
 
     setColorBlocks([...colorBlocks, newBlock]);
   };
+
   // Thêm hàm xử lý thêm size
   const handleAddSize = () => {
     const uniqueId = "size_" + Date.now();
@@ -232,6 +175,23 @@ export default function AddProductBySeller() {
     stock: "",
     status: "1",
   });
+  const handleColorChange = (uniqueId, value) => {
+    // Cập nhật colorBlocks để phản ánh sự thay đổi màu sắc
+    const updatedColorBlocks = colorBlocks.map((block) => {
+      if (block.uniqueId === uniqueId) {
+        return {
+          ...block,
+          colorValue: value,
+          colorCode: COLOR_OPTIONS.find((option) => option.value === value)
+            .color,
+        };
+      }
+      return block;
+    });
+
+    setColorBlocks(updatedColorBlocks);
+  };
+
   const dataURLtoFile = (dataurl, filename) => {
     const arr = dataurl.split(",");
     const mime = arr[0].match(/:(.*?);/)[1]; // Lấy mime type từ chuỗi base64
@@ -247,7 +207,6 @@ export default function AddProductBySeller() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Kiểm tra xem có ảnh được chọn chưa
       if (!cropData) {
         window.Toast.fire({
           icon: "error",
@@ -255,8 +214,6 @@ export default function AddProductBySeller() {
         });
         return;
       }
-
-      // Hàm chuyển đổi base64 thành file
 
       const productData = new FormData();
       const mainImageFile = dataURLtoFile(cropData, "main-product-image.png");
@@ -271,7 +228,6 @@ export default function AddProductBySeller() {
       productData.append("image", mainImageFile);
 
       // Xử lý sizes - thêm từng size riêng biệt
-      let sizeIndex = 0;
       sizeBlocks.forEach((_, index) => {
         const sizeSelect =
           document.getElementsByClassName("select-option-size")[index];
@@ -279,54 +235,28 @@ export default function AddProductBySeller() {
         const priceInput = sizeSelect
           .closest(".row")
           .querySelector('input[type="text"]');
-
         if (sizeValue !== "Choose a size" && priceInput.value) {
-          productData.append(`sizes[${sizeIndex}][size_value]`, sizeValue);
-          productData.append(`sizes[${sizeIndex}][price]`, priceInput.value);
-          sizeIndex++;
+          productData.append(`sizes[${index}][size_value]`, sizeValue);
+          productData.append(`sizes[${index}][price]`, priceInput.value);
         }
       });
 
       // Xử lý colors và ảnh màu đã crop
-      let colorIndex = 0;
-      for (let index = 0; index < colorBlocks.length; index++) {
-        const colorSelect = document.getElementsByClassName(
-          "select-option-color"
-        )[index];
-        const colorValue = colorSelect.value;
-
-        if (colorValue !== "Choose a color") {
-          const rowElement = colorSelect.closest(".row");
-          const uniqueId = rowElement.getAttribute("data-unique-id");
-
-          if (colorCropData[uniqueId]) {
-            const colorImageFile = dataURLtoFile(
-              colorCropData[uniqueId],
-              `color-${colorValue}.png`
-            );
-            productData.append(
-              `colors[${colorIndex}][color_value]`,
-              colorValue
-            );
-            productData.append(
-              `colors[${colorIndex}][color_code]`,
-              colorSelect.options[colorSelect.selectedIndex].dataset.color
-            );
-            productData.append(`colors[${colorIndex}][image]`, colorImageFile);
-            colorIndex++;
-          }
+      colorBlocks.forEach((block, index) => {
+        const colorValue = block.colorValue;
+        if (colorValue !== "Choose a color" && colorCropData[block.uniqueId]) {
+          const colorImageFile = dataURLtoFile(
+            colorCropData[block.uniqueId],
+            `color-${colorValue}.png`
+          );
+          productData.append(`colors[${index}][color_value]`, colorValue);
+          productData.append(`colors[${index}][color_code]`, block.colorCode);
+          productData.append(`colors[${index}][image]`, colorImageFile);
         }
-      }
-
-      // Log để kiểm tra
-      console.log("Form Data entries:");
-      for (let pair of productData.entries()) {
-        console.log(pair[0], pair[1]);
-      }
+      });
 
       const response = await productService.addNewProduct(productData);
       if (response.data.success) {
-        // Thông báo thành công
         window.Toast.fire({
           icon: "success",
           title: "Thêm sản phẩm thành công!",
@@ -373,11 +303,9 @@ export default function AddProductBySeller() {
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
     } catch (error) {
-      console.error("Error details:", error.response?.data); // Log chi tiết lỗi
       window.Toast.fire({
         icon: "error",
-        title:
-          error.response?.data?.message || "Có lỗi xảy ra khi thêm sản phẩm!",
+        title: `Đã xảy ra lỗi: ${error.message}`,
       });
     }
   };
@@ -454,9 +382,7 @@ export default function AddProductBySeller() {
                       onChange={handleInputChange}
                       className="form-control custom-select"
                     >
-                      <option selected disabled>
-                        Select a category
-                      </option>
+                      <option selected>Select a category</option>
                       {categories.map((category) => (
                         <option key={category.id} value={category.id}>
                           {category.name}{" "}
@@ -620,7 +546,85 @@ export default function AddProductBySeller() {
                         <small>Add Color</small>
                       </button>
                     </label>
-                    <div id="color-container">{colorBlocks}</div>
+                    <div id="color-container">
+                      {colorBlocks.map((block, index) => (
+                        <div
+                          key={block.uniqueId}
+                          className="row"
+                          data-unique-id={block.uniqueId}
+                        >
+                          <div className="form-group col-12 col-sm-5 d-flex align-items-center mt-2">
+                            <select
+                              className="form-control select-option-color"
+                              style={{ width: "100%" }}
+                              data-select2-id="25"
+                              tabindex="-1"
+                              aria-hidden="true"
+                              value={block.colorValue}
+                              onChange={(e) =>
+                                handleColorChange(
+                                  block.uniqueId,
+                                  e.target.value
+                                )
+                              }
+                            >
+                              <option value="">Choose a color</option>
+                              {COLOR_OPTIONS.map((option, index) => (
+                                <option
+                                  key={`${option.value}-${index}`}
+                                  value={option.value}
+                                  data-color={option.color}
+                                >
+                                  {option.value}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="col-12 col-sm-7">
+                            <div className="row">
+                              <div className="col-sm-6 d-flex align-items-center">
+                                <input
+                                  id={block.uniqueId}
+                                  type="file"
+                                  className="form-control border-0 d-none"
+                                  accept="image/*"
+                                  onChange={(e) =>
+                                    handleColorImageChange(e, block.uniqueId)
+                                  }
+                                />
+                                <div className="input-group-append">
+                                  <label
+                                    htmlFor={block.uniqueId}
+                                    className="btn btn-light m-0 rounded-pill px-4"
+                                  >
+                                    <i className="fa fa-cloud-upload mr-2 text-muted"></i>
+                                    <small className="text-uppercase font-weight-bold text-muted">
+                                      Choose file
+                                    </small>
+                                  </label>
+                                </div>
+                              </div>
+                              <div className="col-sm-6">
+                                <div className="image-area mt-2">
+                                  <img
+                                    id={`img_${block.uniqueId}`}
+                                    src={block.image}
+                                    alt=""
+                                    className="img-fluid rounded shadow-sm mx-auto d-block"
+                                    style={{
+                                      width: IMAGE_DIMENSIONS.width,
+                                      height: IMAGE_DIMENSIONS.height,
+                                      objectFit: "cover",
+                                      borderRadius: "8px",
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                     {showColorCropper && (
                       <div
                         className="modal fade show"
@@ -654,9 +658,9 @@ export default function AddProductBySeller() {
                                 responsive={true}
                                 autoCropArea={1}
                                 checkOrientation={false}
-                                onInitialized={(instance) => {
-                                  setColorCropper(instance);
-                                }}
+                                onInitialized={(instance) =>
+                                  setColorCropper(instance)
+                                }
                               />
                             </div>
                             <div className="modal-footer">
@@ -680,6 +684,7 @@ export default function AddProductBySeller() {
                       </div>
                     )}
                   </div>
+
                   <div className="form-group">
                     <label>
                       <span>Size&nbsp;&nbsp;</span>

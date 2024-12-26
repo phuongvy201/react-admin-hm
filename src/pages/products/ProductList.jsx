@@ -157,7 +157,13 @@ export default function ProductList() {
                                 <img
                                   className="img-fluid"
                                   style={{ maxHeight: "100px" }}
-                                  src={urlImage + product.image}
+                                  src={
+                                    product.image instanceof File
+                                      ? URL.createObjectURL(product.image)
+                                      : product.image?.startsWith("http")
+                                      ? product.image
+                                      : urlImage + product.image
+                                  }
                                   alt={product.name}
                                 />
                               </div>

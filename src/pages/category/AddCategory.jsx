@@ -3,15 +3,15 @@ import { Link } from "react-router-dom";
 import Cropper from "react-cropper";
 import "cropperjs/dist/cropper.css";
 import categoryService from "../../services/categoryService";
-import Swal from 'sweetalert2';
+import Swal from "sweetalert2";
 
 // Khởi tạo Toast
 const Toast = Swal.mixin({
-    toast: true,
-    position: 'top-end',
-    showConfirmButton: false,
-    timer: 3000,
-    timerProgressBar: true,
+  toast: true,
+  position: "top-end",
+  showConfirmButton: false,
+  timer: 3000,
+  timerProgressBar: true,
 });
 
 export default function AddCategory() {
@@ -78,7 +78,10 @@ export default function AddCategory() {
     // Thêm các trường cơ bản
     categoryData.append("name", name);
     categoryData.append("description", description);
-    categoryData.append("parent_id", parent_id);    
+    if (parent_id !== null && parent_id !== undefined) {
+      categoryData.append("parent_id", parent_id);
+    }
+
     categoryData.append("status", status);
     categoryData.append("image", mainImageFile);
     categoryData.append("created_by", 1);
@@ -292,9 +295,7 @@ export default function AddCategory() {
                       onChange={(e) => setParentId(e.target.value)}
                       className="form-control custom-select"
                     >
-                      <option selected >
-                        Select a category
-                      </option>
+                      <option selected>Select a category</option>
                       {categories.map((category) => (
                         <option key={category.id} value={category.id}>
                           {category.name}{" "}

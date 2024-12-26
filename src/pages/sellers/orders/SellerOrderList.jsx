@@ -11,7 +11,7 @@ export default function SellerOrderList() {
       try {
         const response = await orderService.getOrderBySeller();
         if (response.data.success) {
-          setOrders(response.data.data);
+          setOrders(response.data.orders);
         } else {
           console.error("Failed to fetch orders:", response.data.message);
         }
@@ -64,7 +64,7 @@ export default function SellerOrderList() {
                                 </h5>
                                 <span
                                   className={`mx-2 status-badge ${
-                                    order.status === "1"
+                                    order.status === "1" || order.status === "2"
                                       ? "status-pending"
                                       : "status-confirmed"
                                   }`}
@@ -84,22 +84,31 @@ export default function SellerOrderList() {
                                 </span>
                               </div>
 
-                              {order.details &&
-                                order.details.map((detail, index) => (
+                              {order.order_details &&
+                                order.order_details.map((detail, index) => (
                                   <div key={index} className="product-item">
                                     <div className="d-flex">
                                       <img
                                         src={
-                                          detail.image
-                                            ? urlImage + detail.image
+                                          detail.product.image
+                                            ? detail.product.image instanceof
+                                              File
+                                              ? URL.createObjectURL(
+                                                  detail.product.image
+                                                )
+                                              : detail.product.image?.startsWith(
+                                                  "http"
+                                                )
+                                              ? detail.product.image
+                                              : urlImage + detail.product.image
                                             : "default-image-url"
                                         }
-                                        alt={detail.product_name}
+                                        alt={detail.product.name}
                                         className="product-image"
                                       />
                                       <div className="product-details">
                                         <h6 className="product-name">
-                                          {detail.product_name}
+                                          {detail.product.name}
                                         </h6>
                                         <div className="product-variants">
                                           <span className="variant-badge">
