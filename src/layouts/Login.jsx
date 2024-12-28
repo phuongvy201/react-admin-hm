@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import authService from "../services/authService";
+import Swal from "sweetalert2";
 
 export default function Login() {
   const [formData, setFormData] = useState({
@@ -9,7 +10,17 @@ export default function Login() {
     remember: false,
   });
   const navigate = useNavigate();
-
+  const Toast = Swal.mixin({
+    toast: true,
+    position: "top-end",
+    showConfirmButton: false,
+    timer: 3000,
+    timerProgressBar: true,
+    didOpen: (toast) => {
+      toast.addEventListener("mouseenter", Swal.stopTimer);
+      toast.addEventListener("mouseleave", Swal.resumeTimer);
+    },
+  });
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
@@ -49,16 +60,25 @@ export default function Login() {
           navigate("/seller/products");
         } else {
           // Xử lý các role khác nếu có
-          alert("Không có quyền truy cập!");
+          Toast.fire({
+            icon: "error",
+            title: "Không có quyền truy cập!",
+          });
           localStorage.clear(); // Xóa token và thông tin user
         }
       } else {
         // Hiển thị thông báo lỗi từ server
-        alert(data.message || "Đăng nhập thất bại!");
+        Toast.fire({
+          icon: "error",
+          title: data.message || "Đăng nhập thất bại!",
+        });
       }
     } catch (error) {
       console.error("Lỗi đăng nhập:", error);
-      alert("Có lỗi xảy ra khi đăng nhập!");
+      Toast.fire({
+        icon: "error",
+        title: "Có lỗi xảy ra khi đăng nhập!",
+      });
     }
   };
 

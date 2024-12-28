@@ -5,6 +5,7 @@ import templateService from "../../../services/templateService";
 import {
   COLOR_OPTIONS,
   SIZE_OPTIONS,
+  TYPE_OPTIONS,
 } from "../../../constants/productConstants";
 import { toast } from "react-toastify";
 import Swal from "sweetalert2";
@@ -15,6 +16,22 @@ const Toast = Swal.mixin({
   timer: 3000,
   timerProgressBar: true,
 });
+
+const renderSelect = (options, placeholder, setNewOptionValues) => (
+  <Select
+    options={options.map((option) => ({
+      value: option.value,
+      label: option.label || option.value,
+    }))}
+    isMulti
+    placeholder={placeholder}
+    onChange={(selectedOptions) => {
+      const values = selectedOptions.map((option) => option.value).join(", ");
+      setNewOptionValues(values);
+    }}
+  />
+);
+
 export default function AddTemplate() {
   const [categories, setCategories] = useState([]);
   const [selectedFiles, setSelectedFiles] = useState([]);
@@ -56,6 +73,10 @@ export default function AddTemplate() {
     setSelectedFiles((prevFiles) =>
       prevFiles.filter((file) => file !== fileToRemove)
     );
+  };
+  const handleImageLinkChange = (event) => {
+    const link = event.target.value;
+    setSelectedFiles([link]);
   };
 
   const renderSelectedFiles = () => {
@@ -177,7 +198,7 @@ export default function AddTemplate() {
       formData.append("category_id", selectedCategory.value);
 
       // Thêm ảnh chính của template
-      if (selectedFiles.length > 0) {
+      if (selectedFiles) {
         formData.append("image", selectedFiles[0]);
       }
 
@@ -213,22 +234,11 @@ export default function AddTemplate() {
 
           // Xử lý ảnh của biến thể
           if (variant.image) {
-            // Nếu là URL blob, chuyển đổi thành File
-            if (variant.image.startsWith("blob:")) {
-              const response = await fetch(variant.image);
-              const blob = await response.blob();
-              const file = new File([blob], `variant_image_${index}.png`, {
-                type: blob.type || "image/png",
-              });
-              formData.append(`template_values[${index}][image_url]`, file);
-            }
-            // Nếu là file trực tiếp
-            else if (variant.image instanceof File) {
-              formData.append(
-                `template_values[${index}][image_url]`,
-                variant.image
-              );
-            }
+            // Append URL trực tiếp vào formData
+            formData.append(
+              `template_values[${index}][image_url]`,
+              variant.image
+            );
           }
         } catch (error) {
           console.error(`Error processing variant ${index}:`, error);
@@ -249,7 +259,7 @@ export default function AddTemplate() {
       if (response.data) {
         Toast.fire({
           icon: "success",
-          title: "Tạo template thành công!",  
+          title: "Tạo template thành công!",
         });
         // Reset form
         setTemplateName("");
@@ -338,30 +348,14 @@ export default function AddTemplate() {
                     </div>
                     {/* Product Images */}
                     <div className="form-group mb-4">
-                      <label>Product Image (1 image only)</label>
-                      <div className="input-group">
-                        <input
-                          type="file"
-                          className="d-none"
-                          accept="image/*"
-                          id="fileInput"
-                          onChange={handleFileSelect}
-                        />
-                        <button
-                          type="button"
-                          className="btn btn-primary"
-                          onClick={() =>
-                            document.getElementById("fileInput").click()
-                          }
-                        >
-                          Select Image
-                        </button>
-                        <span className="ml-2 align-middle" id="fileCount">
-                          {selectedFiles.length === 0
-                            ? "No file selected"
-                            : `${selectedFiles.length} file selected`}
-                        </span>
-                      </div>
+                      <label>Product Image (Paste image URL)</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        
+                        placeholder="Paste image URL here"
+                        onChange={handleImageLinkChange}
+                      />
                       <div
                         id="imagePreview"
                         className="text-center text-muted mt-2"
@@ -371,7 +365,47 @@ export default function AddTemplate() {
                           gap: "10px",
                         }}
                       >
-                        {renderSelectedFiles()}
+                        {selectedFiles.map((file, index) => (
+                          <div
+                            key={index}
+                            style={{
+                              position: "relative",
+                              width: "120px",
+                              height: "120px",
+                              border: "2px solid #ddd",
+                              borderRadius: "8px",
+                              overflow: "hidden",
+                            }}
+                          >
+                            <img
+                              src={file}
+                              alt="preview"
+                              style={{
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
+                              }}
+                            />
+                            <button
+                              onClick={() => removeFile(file)}
+                              style={{
+                                position: "absolute",
+                                top: "5px",
+                                right: "5px",
+                                background: "rgba(255, 255, 255, 0.8)",
+                                border: "none",
+                                borderRadius: "50%",
+                                width: "25px",
+                                height: "25px",
+                                fontSize: "18px",
+                                color: "#ff4444",
+                                cursor: "pointer",
+                              }}
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
                       </div>
                     </div>
                     {/* Size Chart Image */}
@@ -431,6 +465,7 @@ export default function AddTemplate() {
                             options={[
                               { value: "color", label: "Color" },
                               { value: "size", label: "Size" },
+                              { value: "type", label: "Type" },
                             ]}
                             value={newOptionName}
                             onChange={(selectedOption) => {
@@ -446,35 +481,23 @@ export default function AddTemplate() {
                         <div className="form-group">
                           <label>Values</label>
                           {selectedOptionType === "color" ? (
-                            <Select
-                              options={COLOR_OPTIONS.map((color) => ({
-                                value: color.value,
-                                label: color.value,
-                              }))}
-                              isMulti
-                              placeholder="Select colors"
-                              onChange={(selectedOptions) => {
-                                const values = selectedOptions
-                                  .map((option) => option.value)
-                                  .join(", ");
-                                setNewOptionValues(values);
-                              }}
-                            />
+                            renderSelect(
+                              COLOR_OPTIONS,
+                              "Select colors",
+                              setNewOptionValues
+                            )
                           ) : selectedOptionType === "size" ? (
-                            <Select
-                              options={SIZE_OPTIONS.map((size) => ({
-                                value: size,
-                                label: size,
-                              }))}
-                              isMulti
-                              placeholder="Select sizes"
-                              onChange={(selectedOptions) => {
-                                const values = selectedOptions
-                                  .map((option) => option.value)
-                                  .join(", ");
-                                setNewOptionValues(values);
-                              }}
-                            />
+                            renderSelect(
+                              SIZE_OPTIONS,
+                              "Select sizes",
+                              setNewOptionValues
+                            )
+                          ) : selectedOptionType === "type" ? (
+                            renderSelect(
+                              TYPE_OPTIONS,
+                              "Select types",
+                              setNewOptionValues
+                            )
                           ) : (
                             <input
                               type="text"
@@ -545,26 +568,28 @@ export default function AddTemplate() {
                                     .includes("color") ? (
                                     <>
                                       <input
-                                        type="file"
-                                        id={`fileInput-${index}`}
-                                        accept="image/*"
-                                        style={{ display: "none" }}
-                                        onChange={handleColorImageUpload(
-                                          variant.variant.split(" / ")[1],
-                                          index
-                                        )}
+                                        type="text"
+                                        className="form-control"
+                                        placeholder="Paste image URL here"
+                                        value={variant.image || ""}
+                                        onChange={(e) => {
+                                          const newImageLink = e.target.value;
+                                          setVariants((prevVariants) =>
+                                            prevVariants.map((v, i) =>
+                                              i === index
+                                                ? { ...v, image: newImageLink }
+                                                : v
+                                            )
+                                          );
+                                        }}
                                       />
-                                      <label
-                                        htmlFor={`fileInput-${index}`}
-                                        className="btn btn-primary btn-sm"
-                                      >
-                                        Add Image
-                                      </label>
                                       {variant.image && (
                                         <img
                                           src={variant.image}
                                           alt="Variant"
                                           style={{
+                                            objectFit: "cover",
+                                            marginTop: "10px",
                                             width: "50px",
                                             height: "50px",
                                             marginLeft: "10px",

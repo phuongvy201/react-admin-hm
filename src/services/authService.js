@@ -7,6 +7,9 @@ const authService = {
   logout: () => {
     return httpAxios.post(`/logout`);
   },
+  checkSession: () => {
+    return httpAxios.get(`/check-session`);
+  },
 };
 
 export default authService;

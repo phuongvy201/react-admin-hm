@@ -13,6 +13,7 @@ import {
   EDITOR_CONFIG,
   IMAGE_DIMENSIONS,
   SIZE_OPTIONS,
+  TYPE_OPTIONS,
 } from "../../../constants/productConstants";
 import { urlImage } from "../../../config";
 
@@ -39,6 +40,7 @@ export default function EditProduct() {
   const [colorCropper, setColorCropper] = useState(null);
   const [showColorCropper, setShowColorCropper] = useState(false);
   const [selectedColorIndex, setSelectedColorIndex] = useState(null);
+  const [imageUrl, setImageUrl] = useState("");
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -64,6 +66,7 @@ export default function EditProduct() {
         // Lấy colors và sizes
         const colorsResponse = await productService.getProductColors(id);
         const sizesResponse = await productService.getProductSizes(id);
+        const typesResponse = await productService.getProductTypes(id);
 
         // Thêm id vào mỗi color để theo dõi
         const colorsWithIds = colorsResponse.data.data.map((color) => ({
@@ -80,6 +83,11 @@ export default function EditProduct() {
           ...prev,
           sizes: sizesResponse.data.data,
         }));
+        setProduct((prev) => ({
+          ...prev,
+          types: typesResponse.data.data,
+        }));
+        console.log(typesResponse);
       } catch (error) {
         toast.error("Không thể lấy thông tin sản phẩm");
       }
@@ -283,6 +291,10 @@ export default function EditProduct() {
         formData.append(`sizes[${index}][size_value]`, size.size_value);
         formData.append(`sizes[${index}][price]`, size.price);
       });
+      product.types.forEach((type, index) => {
+        formData.append(`types[${index}][type_value]`, type.type_value);
+        formData.append(`types[${index}][price]`, type.price);
+      });
 
       const response = await productService.updateProduct(id, formData);
 
@@ -427,10 +439,10 @@ export default function EditProduct() {
     }));
   };
 
-  const handleRemoveSize = (indexToRemove) => {
+  const handleRemoveType = (indexToRemove) => {
     setProduct((prev) => ({
       ...prev,
-      sizes: prev.sizes.filter((_, index) => index !== indexToRemove),
+      types: prev.types.filter((_, index) => index !== indexToRemove),
     }));
   };
 
@@ -447,6 +459,51 @@ export default function EditProduct() {
       }
     }
     return "https://cdn-icons-png.flaticon.com/128/179/179378.png";
+  };
+
+  const handleImageUrlChange = (e) => {
+    setImageUrl(e.target.value);
+  };
+
+  const handleImageUploadFromUrl = async () => {
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const file = new File([blob], "uploaded-image.jpg", { type: blob.type });
+      setImage(URL.createObjectURL(file));
+      setShowCropper(true);
+    } catch (error) {
+      console.error("Lỗi khi tải hình ảnh từ URL:", error);
+      toast.error("Không thể tải hình ảnh từ URL");
+    }
+  };
+  const handleAddType = () => {
+    setProduct((prev) => ({
+      ...prev,
+      types: [...prev.types, { type_value: "", price: "" }],
+    }));
+  };
+  const handleTypeChange = (index, value) => {
+    setProduct((prev) => ({
+      ...prev,
+      types: prev.types.map((type, i) =>
+        i === index ? { ...type, type_value: value } : type
+      ),
+    }));
+  };
+  const handleTypePriceChange = (index, value) => {
+    setProduct((prev) => ({
+      ...prev,
+      types: prev.types.map((type, i) =>
+        i === index ? { ...type, price: value } : type
+      ),
+    }));
+  };
+  const handleRemoveSize = (indexToRemove) => {
+    setProduct((prev) => ({
+      ...prev,
+      sizes: prev.sizes.filter((_, index) => index !== indexToRemove),
+    }));
   };
 
   return (
@@ -758,8 +815,11 @@ export default function EditProduct() {
                             >
                               <option value="">Choose a size</option>
                               {SIZE_OPTIONS.map((sizeOption) => (
-                                <option key={sizeOption} value={sizeOption}>
-                                  {sizeOption}
+                                <option
+                                  key={sizeOption.value}
+                                  value={sizeOption.value}
+                                >
+                                  {sizeOption.label}
                                 </option>
                               ))}
                             </select>
@@ -781,6 +841,69 @@ export default function EditProduct() {
                               aria-label="Close"
                               className="btn btn-block bg-gradient-danger btn-xs btn-close"
                               onClick={() => handleRemoveSize(index)}
+                            >
+                              <i className="fa-solid fa-xmark"></i>
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label>
+                      <span>Type&nbsp;&nbsp;</span>
+                      <button
+                        type="button"
+                        id="addTypeButton"
+                        className="btn btn-info btn-sm"
+                        onClick={handleAddType}
+                      >
+                        <small>Add Type</small>
+                      </button>
+                    </label>
+                    <div id="type-container">
+                      {Object.values(product.types || {}).map((type, index) => (
+                        <div className="row mt-3" key={index}>
+                          <div className="col-sm-6">
+                            <select
+                              className="form-control select-option-type"
+                              style={{ width: "100%" }}
+                              data-select2-id={`type-${index}`}
+                              tabIndex="-1"
+                              aria-hidden="true"
+                              value={type.type_value}
+                              onChange={(e) =>
+                                handleTypeChange(index, e.target.value)
+                              }
+                            >
+                              <option value="">Choose a type</option>
+                              {TYPE_OPTIONS.map((typeOption) => (
+                                <option
+                                  key={typeOption.value}
+                                  value={typeOption.value}
+                                >
+                                  {typeOption.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="col-sm-5">
+                            <input
+                              type="number"
+                              className="form-control"
+                              placeholder="Price"
+                              value={type.price}
+                              onChange={(e) =>
+                                handleTypePriceChange(index, e.target.value)
+                              }
+                            />
+                          </div>
+                          <div className="col-sm-1 d-flex align-items-center">
+                            <button
+                              type="button"
+                              aria-label="Close"
+                              className="btn btn-block bg-gradient-danger btn-xs btn-close"
+                              onClick={() => handleRemoveType(index)}
                             >
                               <i className="fa-solid fa-xmark"></i>
                             </button>

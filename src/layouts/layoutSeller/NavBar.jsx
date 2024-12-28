@@ -204,12 +204,12 @@ export default function NavBar() {
                             <p>Product List</p>
                           </Link>
                         </li>
-                        <li className="nav-item">
+                        {/* <li className="nav-item">
                           <Link to="/seller/addproduct" className="nav-link">
                             <i className="far fa-circle nav-icon" />
                             <p>Add Product</p>
                           </Link>
-                        </li>
+                        </li> */}
                       </ul>
                     </li>
 

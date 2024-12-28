@@ -152,7 +152,17 @@ export default function DiscountList() {
                                   <img
                                     className="img-fluid"
                                     style={{ maxHeight: "100px" }}
-                                    src={urlImage + discount.product_image}
+                                    src={
+                                      discount.product_image instanceof File
+                                        ? URL.createObjectURL(
+                                            discount.product_image
+                                          )
+                                        : discount.product_image?.startsWith(
+                                            "http"
+                                          )
+                                          ? discount.product_image
+                                          : urlImage + discount.product_image
+                                    }
                                     alt={discount.product_name}
                                   />
                                 </div>

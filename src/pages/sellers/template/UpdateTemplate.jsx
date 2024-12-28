@@ -47,18 +47,7 @@ export default function UpdateTemplate() {
 
     fetchCategories();
   }, []);
-  const addVariant = (name, value, price = 0, image = "") => {
-    setVariants((prevVariants) => [
-      ...prevVariants,
-      {
-        id: null, // ID sẽ là null cho biến thể mới
-        variant: `${name} / ${value}`,
-        price: price,
-        image: image,
-        newImage: null, // Để lưu file mới nếu có
-      },
-    ]);
-  };
+
   useEffect(() => {
     const fetchTemplateData = async () => {
       try {
@@ -84,8 +73,8 @@ export default function UpdateTemplate() {
 
         // Xử lý ảnh template
         if (template.image) {
-          setOriginalImageUrl(urlImage + template.image);
-          setSelectedFiles([urlImage + template.image]); // Sử dụng urlImage
+          setOriginalImageUrl(template.image);
+          setSelectedFiles([template.image]); // Sử dụng urlImage
         }
 
         // Xử lý template values
@@ -101,11 +90,12 @@ export default function UpdateTemplate() {
           groupedOptions.get(value.name).push(value.value);
 
           // Tạo variant với đầy đủ thông tin
+          console.log("1111", template.template_values);
           processedVariants.push({
             id: value.id,
             variant: `${value.name} / ${value.value}`,
             price: value.additional_price,
-            image: value.image_url ? urlImage + value.image_url : "",
+            image: value.image_url ? value.image_url : "",
             originalImage: value.image_url, // Lưu đường dẫn ảnh gốc
           });
         });
@@ -119,6 +109,7 @@ export default function UpdateTemplate() {
 
         // Cập nhật variants
         setVariants(processedVariants);
+        console.log(processedVariants);
       } catch (error) {
         console.error("Error fetching template:", error);
         toast.error("Không thể tải thông tin template");
@@ -145,6 +136,12 @@ export default function UpdateTemplate() {
     setOriginalImageUrl("");
   };
 
+  const handleImageUrlChange = (event) => {
+    const url = event.target.value;
+    setSelectedFiles([url]);
+    setOriginalImageUrl(url);
+  };
+
   const renderSelectedFiles = () => {
     return selectedFiles.map((file, index) => (
       <div
@@ -159,7 +156,7 @@ export default function UpdateTemplate() {
         }}
       >
         <img
-          src={file instanceof File ? URL.createObjectURL(file) : file}
+          src={file}
           alt="preview"
           style={{ width: "100%", height: "100%", objectFit: "cover" }}
         />
@@ -237,9 +234,6 @@ export default function UpdateTemplate() {
     }
   };
 
-  const removeVariant = (index) => {
-    setVariants((prevVariants) => prevVariants.filter((_, i) => i !== index));
-  };
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -249,7 +243,7 @@ export default function UpdateTemplate() {
     formData.append("category_id", selectedCategoryId);
 
     if (selectedFiles.length > 0) {
-      formData.append("image", selectedFiles[0]);
+      formData.append("image", selectedFiles[0]); // Giả sử selectedFiles[0] là URL
     }
 
     variants.forEach((variant, index) => {
@@ -267,11 +261,9 @@ export default function UpdateTemplate() {
         variant.price || 0
       );
 
-      if (variant.newImage) {
-        formData.append(
-          `template_values[${index}][image_url]`,
-          variant.newImage
-        );
+      // Append URL trực tiếp vào formData
+      if (variant.image) {
+        formData.append(`template_values[${index}][image_url]`, variant.image);
       }
     });
 
@@ -353,32 +345,15 @@ export default function UpdateTemplate() {
                         />
                       </div>
 
-                      {/* Current Image Preview */}
+                      {/* Current Image URL Input */}
                       <div className="form-group mb-4">
-                        <label>Ảnh Template</label>
-                        <div className="input-group">
-                          <input
-                            type="file"
-                            className="d-none"
-                            accept="image/*"
-                            id="fileInput"
-                            onChange={handleFileSelect}
-                          />
-                          <button
-                            type="button"
-                            className="btn btn-primary"
-                            onClick={() =>
-                              document.getElementById("fileInput").click()
-                            }
-                          >
-                            Chọn ảnh
-                          </button>
-                          <span className="ml-2 align-middle">
-                            {selectedFiles.length === 0
-                              ? "Chưa chọn ảnh"
-                              : "Đã chọn 1 ảnh"}
-                          </span>
-                        </div>
+                        <label>URL Ảnh Template</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          placeholder="Nhập URL ảnh"
+                          onChange={handleImageUrlChange}
+                        />
                         <div className="mt-2">
                           {selectedFiles.length > 0 && renderSelectedFiles()}
                         </div>
@@ -394,7 +369,6 @@ export default function UpdateTemplate() {
                                 <th>ID</th>
                                 <th>Biến thể</th>
                                 <th>Giá/Ảnh</th>
-                                <th>Thao tác</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -408,35 +382,47 @@ export default function UpdateTemplate() {
                                       .includes("color") ? (
                                       <div className="d-flex align-items-center">
                                         <input
-                                          type="file"
-                                          id={`fileInput-${index}`}
-                                          accept="image/*"
-                                          style={{ display: "none" }}
-                                          onChange={handleColorImageUpload(
-                                            variant.variant.split(" / ")[1],
-                                            index
-                                          )}
+                                          type="text"
+                                          className="form-control"
+                                          placeholder="Nhập URL ảnh"
+                                          value={variant.image}
+                                          onChange={(e) => {
+                                            const newImageUrl = e.target.value;
+                                            setVariants((prevVariants) =>
+                                              prevVariants.map((v, i) =>
+                                                i === index
+                                                  ? { ...v, image: newImageUrl }
+                                                  : v
+                                              )
+                                            );
+                                          }}
                                         />
-                                        <label
-                                          htmlFor={`fileInput-${index}`}
-                                          className="btn btn-primary btn-sm mr-2"
-                                        >
-                                          {variant.image
-                                            ? "Thay đổi ảnh"
-                                            : "Thêm ảnh"}
-                                        </label>
-                                        {variant.image && (
-                                          <img
-                                            src={variant.image}
-                                            alt={variant.variant}
-                                            style={{
-                                              width: "50px",
-                                              height: "50px",
-                                              objectFit: "cover",
-                                              marginLeft: "10px",
-                                            }}
-                                          />
-                                        )}
+                                        <div className="d-flex">
+                                          {variant.image_url && (
+                                            <img
+                                              src={variant.image_url}
+                                              alt={variant.variant}
+                                              style={{
+                                                width: "50px",
+                                                height: "50px",
+                                                objectFit: "cover",
+                                                marginLeft: "10px",
+                                              }}
+                                            />
+                                          )}
+                                          {variant.image && (
+                                            <img
+                                              src={variant.image}
+                                              alt={variant.variant}
+                                              style={{
+                                                width: "50px",
+                                                height: "50px",
+                                                objectFit: "cover",
+                                                marginLeft: "10px",
+                                              }}
+                                            />
+                                          )}
+                                        </div>
                                       </div>
                                     ) : (
                                       <input
@@ -455,15 +441,6 @@ export default function UpdateTemplate() {
                                         }}
                                       />
                                     )}
-                                  </td>
-                                  <td>
-                                    <button
-                                      type="button"
-                                      className="btn btn-danger btn-sm"
-                                      onClick={() => removeVariant(index)}
-                                    >
-                                      Xóa
-                                    </button>
                                   </td>
                                 </tr>
                               ))}

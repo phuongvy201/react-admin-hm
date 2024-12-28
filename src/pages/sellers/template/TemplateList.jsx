@@ -91,7 +91,13 @@ export default function TemplateList() {
                 {templates.map((template) => (
                   <div key={template.id} className="template-card-template">
                     <img
-                      src={urlImage + template.image}
+                      src={
+                        template.image instanceof File
+                          ? URL.createObjectURL(template.image)
+                          : template.image?.startsWith("http")
+                          ? template.image
+                          : urlImage + template.image
+                      }
                       alt={template.template_name}
                       className="template-image"
                     />

@@ -17,7 +17,7 @@ const productService = {
     return httpAxios.get(`admin/products/${id}/sizes`);
   },
   getProductById: (id) => {
-    return httpAxios.get(`admin/products/${id}`);
+    return httpAxios.get(`products/${id}`);
   },
   getProductBySeller: (page = 1) => {
     return httpAxios.get(`seller/products/seller?page=${page}`);
@@ -38,6 +38,12 @@ const productService = {
   importProduct: (data) => {
     return httpAxios.post(`seller/products/import`, data);
   },
-};
+  addProductByTemplate: (data) => {
+    return httpAxios.post(`seller/products/add-by-template`, data);
+  },
+  getProductTypes: (id) => {
+    return httpAxios.get(`seller/products/types/${id}`);
+  },
+};  
 
 export default productService;

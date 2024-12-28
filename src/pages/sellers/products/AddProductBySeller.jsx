@@ -549,7 +549,7 @@ export default function AddProductBySeller() {
                     <div id="color-container">
                       {colorBlocks.map((block, index) => (
                         <div
-                          key={block.uniqueId}
+                          key={`${block.uniqueId}-${index}`}
                           className="row"
                           data-unique-id={block.uniqueId}
                         >

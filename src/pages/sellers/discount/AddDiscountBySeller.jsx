@@ -303,7 +303,13 @@ export default function AddDiscountBySeller() {
                                     <img
                                       className="img-fluid"
                                       style={{ maxHeight: "50px" }}
-                                      src={urlImage + product.image}
+                                      src={
+                                        product.image instanceof File
+                                          ? URL.createObjectURL(product.image)
+                                          : product.image?.startsWith("http")
+                                          ? product.image
+                                          : urlImage + product.image
+                                      }
                                       alt={product.name}
                                     />
                                   </div>
