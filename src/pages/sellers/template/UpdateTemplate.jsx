@@ -1,471 +1,928 @@
 import React, { useEffect, useState } from "react";
 import Select from "react-select";
+import {
+  COLOR_OPTIONS,
+  SIZE_OPTIONS,
+  TYPE_OPTIONS,
+} from "./../../../constants/productConstants";
 import categoryService from "../../../services/categoryService";
 import templateService from "../../../services/templateService";
-import { toast } from "react-toastify";
-import { useParams } from "react-router-dom";
-import { urlImage } from "../../../config";
 import Swal from "sweetalert2";
-const Toast = Swal.mixin({
-  toast: true,
-  position: "top-end",
-  showConfirmButton: false,
-  timer: 3000,
-  timerProgressBar: true,
-});
+import { useParams } from "react-router-dom";
+import { Modal } from "bootstrap";
+
 export default function UpdateTemplate() {
   const { id } = useParams();
-  const [isLoading, setIsLoading] = useState(true);
-  const [categories, setCategories] = useState([]);
   const [selectedFiles, setSelectedFiles] = useState([]);
-  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
+  const [selectedOption, setSelectedOption] = useState(null);
+  const [selectedValues, setSelectedValues] = useState([]);
+  const [template, setTemplate] = useState(null);
+  const [imageOptionIndex, setImageOptionIndex] = useState(null);
+  const [optionsList, setOptionsList] = useState([]);
+  const [images, setImages] = useState({});
   const [selectedCategory, setSelectedCategory] = useState(null);
-  const [options, setOptions] = useState([]);
-  const [newOptionName, setNewOptionName] = useState(null);
-  const [newOptionValues, setNewOptionValues] = useState("");
-  const [colorImages, setColorImages] = useState({});
+  const [categories, setCategories] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [variants, setVariants] = useState([]);
-  const [selectedOptionType, setSelectedOptionType] = useState(null);
-  const [templateName, setTemplateName] = useState("");
-  const [description, setDescription] = useState("");
-  const [originalImageUrl, setOriginalImageUrl] = useState("");
-
+  const [newPrice, setNewPrice] = useState("");
+  const [newQuantity, setNewQuantity] = useState("");
+  const [selectedForBulk, setSelectedForBulk] = useState([]);
+  const [imageUrl, setImageUrl] = useState("");
+  const Toast = Swal.mixin({
+    toast: true,
+    position: "top-end",
+    showConfirmButton: false,
+    timer: 3000,
+    timerProgressBar: true,
+    didOpen: (toast) => {
+      toast.addEventListener("mouseenter", Swal.stopTimer);
+      toast.addEventListener("mouseleave", Swal.resumeTimer);
+    },
+  });
   useEffect(() => {
     const fetchCategories = async () => {
       try {
         const response = await categoryService.getFlatCategories();
-        const categoryOptions = response.data.data.map((category) => ({
-          value: category.id,
-          label: category.name,
-        }));
-        setCategories(categoryOptions);
+        setCategories(response.data.data); // Giả sử API trả về data trong response.data.data
       } catch (error) {
         console.error("Error fetching categories:", error);
-        toast.error("Không thể tải danh sách danh mục");
       }
     };
 
     fetchCategories();
   }, []);
-
   useEffect(() => {
-    const fetchTemplateData = async () => {
+    const fetchData = async () => {
       try {
-        setIsLoading(true);
-        const response = await templateService.getTemplate(id);
-        const template = response.data.data;
+        // Fetch template details
+        const templateResponse = await templateService.getTemplate(id);
+        const templateData = templateResponse.data.data;
 
-        // Cập nhật thông tin cơ bản
-        setTemplateName(template.template_name);
-        setDescription(template.description);
-        setSelectedCategoryId(template.category_id);
+        setTemplate(templateData);
+        setImageUrl(templateData.image || "");
 
-        // Cập nhật selected category
-        if (categories.length > 0) {
-          const categoryOption = categories.find(
-            (cat) => cat.value === template.category_id
-          );
-          console.log("Found category:", categoryOption); // Debug
-          if (categoryOption) {
-            setSelectedCategory(categoryOption);
-          }
-        }
-
-        // Xử lý ảnh template
-        if (template.image) {
-          setOriginalImageUrl(template.image);
-          setSelectedFiles([template.image]); // Sử dụng urlImage
-        }
-
-        // Xử lý template values
-        const processedVariants = [];
-        const groupedOptions = new Map();
-
-        // Nhóm các template values theo name
-        template.template_values.forEach((value) => {
-          // Thêm vào groupedOptions để tạo options
-          if (!groupedOptions.has(value.name)) {
-            groupedOptions.set(value.name, []);
-          }
-          groupedOptions.get(value.name).push(value.value);
-
-          // Tạo variant với đầy đủ thông tin
-          console.log("1111", template.template_values);
-          processedVariants.push({
-            id: value.id,
-            variant: `${value.name} / ${value.value}`,
-            price: value.additional_price,
-            image: value.image_url ? value.image_url : "",
-            originalImage: value.image_url, // Lưu đường dẫn ảnh gốc
-          });
+        // Set selected category
+        setSelectedCategory({
+          value: templateData.category.id,
+          label: templateData.category.name,
         });
 
-        // Cập nhật options
-        const newOptions = Array.from(groupedOptions).map(([name, values]) => ({
-          name,
-          values,
+        // Format và set options list từ attributes
+        const formattedOptions = templateData.attributes.map((attr) => ({
+          option: attr.name,
+          values: templateData.variants.reduce((acc, variant) => {
+            const attrValue = variant.attributes.find(
+              (a) => a.attribute_name === attr.name
+            );
+            if (attrValue && !acc.find((v) => v.label === attrValue.value)) {
+              acc.push({
+                value: attrValue.value.toLowerCase(),
+                label: attrValue.value,
+              });
+            }
+            return acc;
+          }, []),
         }));
-        setOptions(newOptions);
+        setOptionsList(formattedOptions);
 
-        // Cập nhật variants
-        setVariants(processedVariants);
-        console.log(processedVariants);
+        // Set variants với format mới
+        const formattedVariants = templateData.variants.map((variant) => ({
+          id: variant.id,
+          variant: variant.attributes.map((attr) => attr.value).join(", "),
+          sku: variant.sku,
+          price: variant.price,
+          quantity: variant.quantity,
+          image: variant.image,
+        }));
+        setVariants(formattedVariants);
+
+        // Fetch categories
+        const categoriesResponse = await categoryService.getFlatCategories();
+        setCategories(categoriesResponse.data.data);
       } catch (error) {
-        console.error("Error fetching template:", error);
-        toast.error("Không thể tải thông tin template");
-      } finally {
-        setIsLoading(false);
+        console.error("Error fetching data:", error);
+        Toast.fire({
+          icon: "error",
+          title: "Error loading template data",
+        });
       }
     };
 
-    if (id && categories.length > 0) {
-      fetchTemplateData();
+    if (id) {
+      fetchData();
     }
-  }, [id, categories]);
-
-  const handleFileSelect = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      setSelectedFiles([file]);
-      setOriginalImageUrl(""); // Xóa URL ảnh gốc khi có file mới
-    }
-  };
-
-  const removeFile = (fileToRemove) => {
-    setSelectedFiles([]);
-    setOriginalImageUrl("");
-  };
+  }, [id]);
 
   const handleImageUrlChange = (event) => {
-    const url = event.target.value;
-    setSelectedFiles([url]);
-    setOriginalImageUrl(url);
+    setImageUrl(event.target.value);
   };
 
-  const renderSelectedFiles = () => {
-    return selectedFiles.map((file, index) => (
-      <div
-        key={index}
-        style={{
-          position: "relative",
-          width: "120px",
-          height: "120px",
-          border: "2px solid #ddd",
-          borderRadius: "8px",
-          overflow: "hidden",
-        }}
-      >
-        <img
-          src={file}
-          alt="preview"
-          style={{ width: "100%", height: "100%", objectFit: "cover" }}
-        />
-        <button
-          onClick={() => removeFile(file)}
-          style={{
-            position: "absolute",
-            top: "5px",
-            right: "5px",
-            background: "rgba(255, 255, 255, 0.8)",
-            border: "none",
-            borderRadius: "50%",
-            width: "25px",
-            height: "25px",
-            fontSize: "18px",
-            color: "#ff4444",
-            cursor: "pointer",
-          }}
-        >
-          ×
-        </button>
-      </div>
-    ));
+  const handleImageUrlVariant = (key, url) => {
+    setImages((prev) => ({
+      ...prev,
+      [key]: url,
+    }));
+
+    setVariants((prevVariants) =>
+      prevVariants.map((variant) => {
+        const variantValues = variant.variant.split(", ");
+        if (variantValues.includes(key)) {
+          return {
+            ...variant,
+            image: url,
+          };
+        }
+        return variant;
+      })
+    );
   };
 
-  const addOption = () => {
-    if (newOptionName && newOptionValues) {
-      const valuesArray = newOptionValues
-        .split(",")
-        .map((value) => value.trim());
+  const handleOptionChange = (option) => {
+    setSelectedOption(option);
+    setSelectedValues([]);
+  };
 
-      // Tạo một đối tượng cho option mới
-      const newOption = {
-        name: newOptionName.label,
-        values: valuesArray,
-        price: [], // Giá mặc định
-        image: [], // Hình ảnh mặc định
-      };
-
-      setOptions((prevOptions) => [...prevOptions, newOption]);
-
-      setNewOptionName(null);
-      setNewOptionValues([]);
-      createVariants(newOptionName.label, valuesArray);
-      console.log(newOption);
-      setSelectedOptionType(null); // Đặt lại loại tùy chọn
+  const getValuesOptions = () => {
+    switch (selectedOption?.value) {
+      case "color":
+        return COLOR_OPTIONS;
+      case "size":
+        return SIZE_OPTIONS;
+      case "type":
+        return TYPE_OPTIONS;
+      default:
+        return [];
     }
   };
 
-  const createVariants = (optionName, values) => {
-    const newVariants = values.map((value) => ({
-      variant: `${optionName} / ${value}`,
-      price: optionName.toLowerCase() === "size" ? 100 : "",
-      quantity: 100,
-      image:
-        optionName.toLowerCase() === "color" ? colorImages[value] || "" : "",
-    }));
-    setVariants((prevVariants) => [...prevVariants, ...newVariants]);
+  const handleAddOption = () => {
+    if (selectedOption && selectedValues.length > 0) {
+      const newOptionsList = [
+        ...optionsList,
+        { option: selectedOption.label, values: selectedValues },
+      ];
+      setOptionsList(newOptionsList);
+
+      const valuesList = newOptionsList.map((item) =>
+        item.values.map((v) => v.label)
+      );
+      const combinations = generateCombinations(valuesList);
+      const newVariants = combinations.map((combination) => {
+        const variantKey = combination.join(", ");
+        return {
+          variant: variantKey,
+          price: "",
+          quantity: "",
+          image: images[variantKey] || null, // Đảm bảo hình ảnh được gán đúng
+        };
+      });
+      setVariants(newVariants);
+
+      setSelectedOption(null);
+      setSelectedValues([]);
+    }
   };
 
-  const handleColorImageUpload = (variantName, index) => async (event) => {
+  const handleImageUpload = (key, event) => {
     const file = event.target.files[0];
     if (file) {
-      setVariants((prevVariants) =>
-        prevVariants.map((v, i) =>
-          i === index
-            ? {
-                ...v,
-                image: URL.createObjectURL(file),
-                newImage: file, // Lưu file mới để sử dụng khi submit
-              }
-            : v
-        )
-      );
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        // Cập nhật images state
+        setImages((prevImages) => ({
+          ...prevImages,
+          [key]: reader.result,
+        }));
+
+        // Cập nhật variants state với hình ảnh mới
+        setVariants((prevVariants) =>
+          prevVariants.map((variant) => {
+            // Kiểm tra xem variant có chứa key không
+            if (variant.variant.includes(key)) {
+              return {
+                ...variant,
+                image: reader.result,
+              };
+            }
+            return variant;
+          })
+        );
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const toggleImageUpload = (index) => {
+    setImageOptionIndex(imageOptionIndex === index ? null : index);
+  };
+
+  const closeModal = () => setIsModalOpen(false);
+
+  const generateCombinations = (arrays) => {
+    if (arrays.length === 0) return [[]];
+    const [first, ...rest] = arrays;
+    const combinationsWithoutFirst = generateCombinations(rest);
+    return first.flatMap((value) =>
+      combinationsWithoutFirst.map((combination) => [value, ...combination])
+    );
+  };
+
+  const handleBulkSelect = (option, selectedValues) => {
+    setSelectedForBulk((prev) => ({
+      ...prev,
+      [option]: selectedValues,
+    }));
+  };
+
+  const handleApply = () => {
+    setVariants((prevVariants) =>
+      prevVariants.map((variant) => {
+        const variantParts = variant.variant.split(", ");
+        const isSelected = variantParts.every((part) =>
+          Object.values(selectedForBulk).flat().includes(part)
+        );
+        return isSelected
+          ? { ...variant, price: newPrice, quantity: newQuantity }
+          : variant;
+      })
+    );
+    closeModal();
+  };
+
+  const handleDeleteOption = (indexToDelete) => {
+    setOptionsList((prevOptions) =>
+      prevOptions.filter((_, index) => index !== indexToDelete)
+    );
+
+    const updatedOptionsList = optionsList.filter(
+      (_, index) => index !== indexToDelete
+    );
+    const valuesList = updatedOptionsList.map((item) =>
+      item.values.map((v) => v.label)
+    );
+
+    if (valuesList.length > 0) {
+      const combinations = generateCombinations(valuesList);
+      const newVariants = combinations.map((combination) => ({
+        variant: combination.join(", "),
+        price: "",
+        quantity: "",
+        image: null,
+      }));
+      setVariants(newVariants);
+    } else {
+      setVariants([]);
     }
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    const formData = new FormData();
-    formData.append("template_name", templateName);
-    formData.append("description", description);
-    formData.append("category_id", selectedCategoryId);
+    try {
+      // Format lại dữ liệu attributes
+      const attributesData = optionsList.map((option) => {
+        console.log("Processing option:", option);
+        return {
+          name: option.option,
+          values: option.values.map((v) =>
+            typeof v === "string" ? v : v.label
+          ),
+        };
+      });
 
-    if (selectedFiles.length > 0) {
-      formData.append("image", selectedFiles[0]); // Giả sử selectedFiles[0] là URL
-    }
+      // Format lại dữ liệu variants
+      const variantsData = variants.map((variant) => {
+        const variantValues = variant.variant.split(", ");
+        const attributes = variantValues
+          .map((value, index) => {
+            // Đảm bảo optionsList[index] tồn tại
+            if (!optionsList[index]) {
+              console.error("Missing option for index:", index);
+              return null;
+            }
+            return {
+              attribute_name: optionsList[index].option,
+              value: value.trim(),
+            };
+          })
+          .filter((attr) => attr !== null);
 
-    variants.forEach((variant, index) => {
-      formData.append(`template_values[${index}][id]`, variant.id || "");
-      formData.append(
-        `template_values[${index}][name]`,
-        variant.variant.split(" / ")[0]
-      );
-      formData.append(
-        `template_values[${index}][value]`,
-        variant.variant.split(" / ")[1]
-      );
-      formData.append(
-        `template_values[${index}][additional_price]`,
-        variant.price || 0
-      );
+        return {
+          id: variant.id, // Thêm ID nếu là variant đã tồn tại
+          sku: variant.sku || variant.variant.replace(/, /g, "-").toLowerCase(),
+          price: parseFloat(variant.price) || 0,
+          quantity: parseInt(variant.quantity) || 0,
+          image: variant.image || null,
+          attributes: attributes,
+        };
+      });
 
-      // Append URL trực tiếp vào formData
-      if (variant.image) {
-        formData.append(`template_values[${index}][image_url]`, variant.image);
-      }
-    });
+      const requestData = {
+        name: template.name,
+        description: template.description,
+        category_id: selectedCategory.value,
+        base_price: parseFloat(template.base_price),
+        image: imageUrl,
+        attributes: attributesData,
+        variants: variantsData,
+      };
 
-    // Gửi formData đến backend
-    const response = await templateService.updateTemplate(id, formData);
-    // Xử lý phản hồi từ server
-    if (response.data.success) {
+      console.log("Request data being sent:", requestData);
+
+      const response = await templateService.updateTemplate(id, requestData);
+      console.log("Response received:", response);
+
+      // Kiểm tra response và hiển thị thông báo thành công
       Toast.fire({
         icon: "success",
-        title: "Cập nhật template thành công!",
+        title: "Cập nhật template thành công",
       });
-      toast.success("Cập nhật template thành công!"); // Thêm thông báo thành công
+
+      // Optional: Redirect sau khi update thành công
+      // navigate('/sellers/templates');
+    } catch (error) {
+      console.error("Error updating template:", error);
+      Toast.fire({
+        icon: "error",
+        title: error.response?.data?.message || "Lỗi khi cập nhật template",
+      });
     }
+  };
+
+  const handleRemoveVariant = (variantToRemove) => {
+    setVariants(
+      variants.filter((variant) => variant.variant !== variantToRemove.variant)
+    );
+  };
+
+  const handleShowModal = (modalId) => {
+    const modal = new Modal(document.getElementById(modalId));
+    modal.show();
   };
 
   return (
     <div className="content-wrapper">
+      {/* Content Header (Page header) */}
       <section className="content-header">
         <div className="container-fluid">
           <div className="row mb-2">
             <div className="col-sm-6">
-              <h1>Cập nhật Template</h1>
+              <h1>Update Product Template</h1>
             </div>
           </div>
         </div>
+        {/* /.container-fluid */}
       </section>
-
+      {/* Main content */}
       <section className="content">
         <div className="container-fluid">
-          {isLoading ? (
-            <div className="text-center">
-              <div className="spinner-border text-primary" role="status">
-                <span className="sr-only">Đang tải...</span>
-              </div>
-            </div>
-          ) : (
-            <div className="row">
-              <div className="col-12">
-                <div className="card">
-                  <div className="card-body">
-                    <form onSubmit={handleSubmit}>
-                      {/* Template Name */}
-                      <div className="row mb-4">
-                        <div className="col-md-12">
-                          <div className="form-group">
-                            <label>Tên Template</label>
-                            <input
-                              type="text"
-                              className="form-control"
-                              placeholder="Nhập tên template"
-                              value={templateName}
-                              onChange={(e) => setTemplateName(e.target.value)}
-                            />
-                          </div>
+          <div className="row">
+            <div className="col-12">
+              <div className="card">
+                <div className="card-body">
+                  <form noValidate encType="multipart/form-data">
+                    {/* Product Name */}
+                    <div className="row mb-4">
+                      <div className="col-md-6">
+                        <div className="form-group">
+                          <label>
+                            Product Template Name{" "}
+                            <span className="text-danger">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            placeholder="Enter product name"
+                            defaultValue={template?.name}
+                            onChange={(e) =>
+                              setTemplate((prev) => ({
+                                ...prev,
+                                name: e.target.value,
+                              }))
+                            }
+                          />
                         </div>
                       </div>
-
-                      {/* Description */}
-                      <div className="form-group mb-4">
-                        <label>Mô tả</label>
-                        <textarea
-                          className="form-control"
-                          rows={5}
-                          placeholder="Nhập mô tả template"
-                          value={description}
-                          onChange={(e) => setDescription(e.target.value)}
-                        />
+                      <div className="col-md-6">
+                        <div className="form-group">
+                          <label>Base Price</label>
+                          <input
+                            type="number"
+                            className="form-control"
+                            placeholder="Enter base price"
+                            defaultValue={template?.base_price}
+                            onChange={(e) =>
+                              setTemplate((prev) => ({
+                                ...prev,
+                                base_price: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
                       </div>
+                    </div>
 
-                      {/* Category */}
-                      <div className="form-group mb-4">
-                        <label>Danh mục</label>
-                        <Select
-                          options={categories}
-                          value={selectedCategory}
-                          onChange={setSelectedCategory}
-                          placeholder="Tìm hoặc chọn danh mục"
-                          isClearable
-                        />
-                      </div>
+                    {/* Description */}
+                    <div className="form-group mb-4">
+                      <label>Description</label>
+                      <textarea
+                        className="form-control"
+                        rows={5}
+                        placeholder="Enter product description"
+                        defaultValue={template?.description}
+                        onChange={(e) =>
+                          setTemplate((prev) => ({
+                            ...prev,
+                            description: e.target.value,
+                          }))
+                        }
+                      />
+                    </div>
 
-                      {/* Current Image URL Input */}
-                      <div className="form-group mb-4">
-                        <label>URL Ảnh Template</label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          placeholder="Nhập URL ảnh"
-                          onChange={handleImageUrlChange}
-                        />
+                    {/* Category */}
+                    <div className="form-group mb-4">
+                      <label>
+                        Category <span className="text-danger">*</span>
+                      </label>
+                      <Select
+                        options={categories.map((category) => ({
+                          value: category.id,
+                          label: category.name,
+                        }))}
+                        value={selectedCategory}
+                        placeholder="Select a category"
+                        onChange={(selected) => setSelectedCategory(selected)}
+                      />
+                    </div>
+
+                    {/* Product Image */}
+                    <div className="form-group mb-4">
+                      <label>Product Image URL</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="Enter image URL"
+                        value={imageUrl}
+                        onChange={(e) => setImageUrl(e.target.value)}
+                      />
+                      {imageUrl && (
                         <div className="mt-2">
-                          {selectedFiles.length > 0 && renderSelectedFiles()}
+                          <img
+                            src={imageUrl}
+                            alt="Product preview"
+                            style={{ maxWidth: "200px" }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                    {/* Size Chart Image */}
+
+                    {/* Options */}
+                    <div className="row mb-4">
+                      <div className="col-md-6">
+                        <div className="form-group">
+                          <label>Option Name</label>
+                          <Select
+                            options={[
+                              { value: "color", label: "Color" },
+                              { value: "size", label: "Size" },
+                              { value: "type", label: "Type" },
+                            ]}
+                            placeholder="Select an option name"
+                            onChange={handleOptionChange}
+                            defaultValue={template?.attributes}
+                          />
                         </div>
                       </div>
+                      <div className="col-md-6">
+                        <div className="form-group">
+                          <label>Values</label>
+                          <Select
+                            options={getValuesOptions()}
+                            isMulti
+                            placeholder="Select values"
+                            onChange={(selected) => setSelectedValues(selected)}
+                            defaultValue={template?.attributes}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-success mb-4"
+                      onClick={handleAddOption}
+                    >
+                      Add Option
+                    </button>
+                    {/* Options Section */}
+                    <div className="mt-4">
+                      <h3 className="h4">Options</h3>
+                      <ul className="list-unstyled">
+                        {optionsList.map((item, index) => (
+                          <li
+                            key={index}
+                            className="d-flex justify-content-between align-items-center mb-3"
+                          >
+                            <div>
+                              <strong>{item.option}:</strong>{" "}
+                              {item.values.map((v) => v.label).join(", ")}
+                              {/* Button trigger modal */}
+                              <button
+                                type="button"
+                                className="btn btn-primary mx-1"
+                                onClick={() =>
+                                  handleShowModal(`update-optionModal${index}`)
+                                }
+                              >
+                                Edit
+                              </button>
+                              {/* Modal */}
+                              <div
+                                className="modal fade"
+                                id={`update-optionModal${index}`}
+                                tabIndex={-1}
+                                aria-labelledby={`update-optionModalLabel${index}`}
+                                aria-hidden="true"
+                              >
+                                <div className="modal-dialog">
+                                  <div className="modal-content">
+                                    <div className="modal-header">
+                                      <h1
+                                        className="modal-title fs-5"
+                                        id={`update-optionModalLabel${index}`}
+                                      >
+                                        Edit {item.option}
+                                      </h1>
+                                      <button
+                                        type="button"
+                                        className="btn-close"
+                                        data-bs-dismiss="modal"
+                                        aria-label="Close"
+                                      >
+                                        x
+                                      </button>
+                                    </div>
+                                    <div className="modal-body">
+                                      <div className="form-group">
+                                        <label>Option Name</label>
+                                        <Select
+                                          value={{
+                                            value: item.option.toLowerCase(),
+                                            label: item.option,
+                                          }}
+                                          options={[
+                                            { value: "color", label: "Color" },
+                                            { value: "size", label: "Size" },
+                                            { value: "type", label: "Type" },
+                                          ]}
+                                          isDisabled={true}
+                                        />
+                                      </div>
 
-                      {/* Variants Section */}
-                      <div className="mt-4">
-                        <h5>Biến thể sản phẩm</h5>
-                        <div className="table-responsive">
-                          <table className="table table-bordered">
-                            <thead className="bg-light">
-                              <tr>
-                                <th>ID</th>
-                                <th>Biến thể</th>
-                                <th>Giá/Ảnh</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {variants.map((variant, index) => (
-                                <tr key={variant.id || index}>
-                                  <td>{variant.id || "Mới"}</td>
-                                  <td>{variant.variant}</td>
-                                  <td>
-                                    {variant.variant
-                                      .toLowerCase()
-                                      .includes("color") ? (
-                                      <div className="d-flex align-items-center">
+                                      <div className="form-group mt-3">
+                                        <label>Values</label>
+                                        <Select
+                                          isMulti
+                                          value={item.values}
+                                          options={(() => {
+                                            switch (item.option.toLowerCase()) {
+                                              case "color":
+                                                return COLOR_OPTIONS;
+                                              case "size":
+                                                return SIZE_OPTIONS;
+                                              case "type":
+                                                return TYPE_OPTIONS;
+                                              default:
+                                                return [];
+                                            }
+                                          })()}
+                                          onChange={(selected) => {
+                                            const updatedOptionsList = [
+                                              ...optionsList,
+                                            ];
+                                            updatedOptionsList[index] = {
+                                              ...updatedOptionsList[index],
+                                              values: selected || [],
+                                            };
+                                            setOptionsList(updatedOptionsList);
+
+                                            // Cập nhật variants
+                                            const valuesList =
+                                              updatedOptionsList.map((item) =>
+                                                item.values.map((v) => v.label)
+                                              );
+                                            const combinations =
+                                              generateCombinations(valuesList);
+                                            const newVariants =
+                                              combinations.map(
+                                                (combination) => ({
+                                                  variant:
+                                                    combination.join(", "),
+                                                  price: "",
+                                                  quantity: "",
+                                                  image: null,
+                                                })
+                                              );
+                                            setVariants(newVariants);
+                                          }}
+                                        />
+                                      </div>
+                                    </div>
+                                    <div className="modal-footer">
+                                      <button
+                                        type="button"
+                                        className="btn btn-secondary"
+                                        data-bs-dismiss="modal"
+                                      >
+                                        Close
+                                      </button>
+                                      <button
+                                        data-bs-dismiss="modal"
+                                        type="button"
+                                        className="btn btn-primary"
+                                      >
+                                        Save changes
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                className={`btn mx-1 ${
+                                  imageOptionIndex === index
+                                    ? "btn-info"
+                                    : "btn-info"
+                                }`}
+                                onClick={() => toggleImageUpload(index)}
+                              >
+                                {imageOptionIndex === index
+                                  ? "Remove Image"
+                                  : "Add Image"}
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-danger mx-1"
+                                onClick={() => handleDeleteOption(index)}
+                              >
+                                x
+                              </button>
+                              <div className="mt-2">
+                                {imageOptionIndex === index &&
+                                  item.values.map((size) => (
+                                    <div
+                                      key={size.value}
+                                      className="d-flex align-items-center mb-2"
+                                    >
+                                      <span className="mx-1">
+                                        {size.label}:
+                                      </span>
+                                      <div className="d-flex align-items-center me-2">
                                         <input
                                           type="text"
                                           className="form-control"
-                                          placeholder="Nhập URL ảnh"
-                                          value={variant.image}
-                                          onChange={(e) => {
-                                            const newImageUrl = e.target.value;
-                                            setVariants((prevVariants) =>
-                                              prevVariants.map((v, i) =>
-                                                i === index
-                                                  ? { ...v, image: newImageUrl }
-                                                  : v
-                                              )
-                                            );
-                                          }}
-                                        />
-                                        <div className="d-flex">
-                                          {variant.image_url && (
-                                            <img
-                                              src={variant.image_url}
-                                              alt={variant.variant}
-                                              style={{
-                                                width: "50px",
-                                                height: "50px",
-                                                objectFit: "cover",
-                                                marginLeft: "10px",
-                                              }}
-                                            />
-                                          )}
-                                          {variant.image && (
-                                            <img
-                                              src={variant.image}
-                                              alt={variant.variant}
-                                              style={{
-                                                width: "50px",
-                                                height: "50px",
-                                                objectFit: "cover",
-                                                marginLeft: "10px",
-                                              }}
-                                            />
-                                          )}
-                                        </div>
-                                      </div>
-                                    ) : (
-                                      <input
-                                        type="number"
-                                        className="form-control"
-                                        value={variant.price}
-                                        onChange={(e) => {
-                                          const newPrice = e.target.value;
-                                          setVariants((prevVariants) =>
-                                            prevVariants.map((v, i) =>
-                                              i === index
-                                                ? { ...v, price: newPrice }
-                                                : v
+                                          placeholder="Enter image URL"
+                                          value={images[size.label] || ""}
+                                          onChange={(e) =>
+                                            handleImageUrlVariant(
+                                              size.label,
+                                              e.target.value
                                             )
-                                          );
-                                        }}
-                                      />
-                                    )}
-                                  </td>
-                                </tr>
+                                          }
+                                        />
+                                        {images[size.label] && (
+                                          <img
+                                            src={images[size.label]}
+                                            alt={size.label}
+                                            style={{
+                                              width: "100px",
+                                              marginLeft: "10px",
+                                              borderRadius: "5px",
+                                            }}
+                                          />
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                              </div>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    {/* Variants Section */}
+                    <div className="mt-4">
+                      {/* <h3 className="h4 mb-4">
+                        Variant Combinations. Current SKUs:
+                        <span className="text-danger">6</span>
+                        (Max 300 SKUs)
+                      </h3> */}
+                      <button
+                        type="button"
+                        className="btn btn-primary mb-4"
+                        onClick={() =>
+                          handleShowModal("update-bulk-price-modal")
+                        }
+                      >
+                        Set Bulk Price
+                      </button>
+
+                      <div
+                        className="modal fade"
+                        id="update-bulk-price-modal"
+                        data-bs-backdrop="static"
+                        data-bs-keyboard="false"
+                        tabIndex="-1"
+                        aria-labelledby="update-bulk-price-modal-label"
+                        aria-hidden="true"
+                      >
+                        <div className="modal-dialog">
+                          <div className="modal-content">
+                            <div className="modal-header">
+                              <h5
+                                className="modal-title"
+                                id="update-bulk-price-modal-label"
+                              >
+                                Set Bulk Price and Quantity
+                              </h5>
+                              <button
+                                type="button"
+                                className="btn-close"
+                                data-bs-dismiss="modal"
+                                aria-label="Close"
+                              >
+                                x
+                              </button>
+                            </div>
+                            <div className="modal-body">
+                              <p>
+                                Hold Ctrl (Windows) or Cmd (Mac) to select
+                                multiple options
+                              </p>
+                              {optionsList.map((item, index) => (
+                                <div key={index}>
+                                  <label>{item.option}</label>
+                                  <select
+                                    multiple
+                                    className="form-control"
+                                    onChange={(e) =>
+                                      handleBulkSelect(
+                                        item.option,
+                                        Array.from(
+                                          e.target.selectedOptions,
+                                          (option) => option.value
+                                        )
+                                      )
+                                    }
+                                  >
+                                    {item.values.map((value) => (
+                                      <option
+                                        key={value.value}
+                                        value={value.label}
+                                      >
+                                        {value.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
                               ))}
-                            </tbody>
-                          </table>
+
+                              <div>
+                                <label>Set New Price</label>
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  placeholder="Enter new price"
+                                  value={newPrice}
+                                  onChange={(e) => setNewPrice(e.target.value)}
+                                />
+                              </div>
+                              <div>
+                                <label>Set New Quantity</label>
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  placeholder="Enter quantity"
+                                  value={newQuantity}
+                                  onChange={(e) =>
+                                    setNewQuantity(e.target.value)
+                                  }
+                                />
+                              </div>
+                            </div>
+                            <div className="modal-footer">
+                              <button
+                                type="button"
+                                className="btn btn-secondary"
+                                data-bs-dismiss="modal"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-primary"
+                                onClick={handleApply}
+                              >
+                                Apply
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       </div>
-
-                      {/* Thêm Biến Thể Mới */}
-
-                      {/* Submit Button */}
-                      <button
-                        type="submit"
-                        className="btn btn-success btn-block mt-4"
-                      >
-                        Cập nhật Template
-                      </button>
-                    </form>
-                  </div>
+                      <div className="table-responsive">
+                        <table className="table table-bordered">
+                          <thead className="bg-light">
+                            <tr>
+                              <th>Variant</th>
+                              <th>Image</th>
+                              <th>Price</th>
+                              <th>Quantity</th>
+                              <th>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {variants.map((variant, index) => (
+                              <tr key={index}>
+                                <td>{variant.variant}</td>
+                                <td>
+                                  {variant.image ? (
+                                    <img
+                                      src={variant.image}
+                                      alt={variant.variant}
+                                      style={{
+                                        width: "50px",
+                                        height: "50px",
+                                        objectFit: "cover",
+                                      }}
+                                    />
+                                  ) : (
+                                    "No image"
+                                  )}
+                                </td>
+                                <td>
+                                  <input
+                                    type="number"
+                                    className="form-control"
+                                    value={variant.price}
+                                    onChange={(e) =>
+                                      setVariants(
+                                        variants.map((v) =>
+                                          v.variant === variant.variant
+                                            ? { ...v, price: e.target.value }
+                                            : v
+                                        )
+                                      )
+                                    }
+                                  />
+                                </td>
+                                <td>
+                                  <input
+                                    type="number"
+                                    className="form-control"
+                                    value={variant.quantity}
+                                    onChange={(e) =>
+                                      setVariants(
+                                        variants.map((v) =>
+                                          v.variant === variant.variant
+                                            ? { ...v, quantity: e.target.value }
+                                            : v
+                                        )
+                                      )
+                                    }
+                                  />
+                                </td>
+                                <td>
+                                  <button
+                                    type="button"
+                                    className="btn btn-danger btn-sm"
+                                    onClick={() => handleRemoveVariant(variant)}
+                                  >
+                                    Remove
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                    {/* Submit Button */}
+                    <button
+                      type="submit"
+                      className="btn btn-success btn-block"
+                      onClick={handleSubmit}
+                    >
+                      Update Product Template
+                    </button>
+                  </form>
                 </div>
               </div>
             </div>
-          )}
+          </div>
         </div>
+        {/* /.container-fluid */}
       </section>
+      {/* /.content */}
     </div>
   );
 }

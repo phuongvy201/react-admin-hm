@@ -19,13 +19,10 @@ export default function NavBar() {
   });
 
   const toggleMenu = (menuName) => {
-    setActiveMenus((prev) => {
-      const newActiveMenus = Object.keys(prev).reduce((acc, key) => {
-        acc[key] = key === menuName ? !prev[key] : false;
-        return acc;
-      }, {});
-      return newActiveMenus;
-    });
+    setActiveMenus((prev) => ({
+      ...prev,
+      [menuName]: !prev[menuName],
+    }));
   };
 
   useEffect(() => {

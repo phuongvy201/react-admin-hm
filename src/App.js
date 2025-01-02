@@ -31,18 +31,22 @@ function AppContent() {
       toast.addEventListener("mouseleave", Swal.resumeTimer);
     },
   });
+
   useEffect(() => {
     const checkLoginStatus = async () => {
       try {
-        const response = await authService.checkSession(); // Gọi API để ki���m tra trạng thái phiên
+        const response = await authService.checkSession();
+        console.log("response", response);
         if (response.data.status === "error") {
-          // Xóa token khỏi localStorage
+          // Xóa token, user và rememberedEmail khỏi localStorage
           localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          localStorage.removeItem("rememberedEmail");
 
-          // Nếu phiên không hợp lệ, thông báo cho người dùng
+          // Thông báo cho người dùng
           Toast.fire({
             icon: "error",
-            title: "Tài khoản của bạn đã được đăng nhập từ một thiết bị khác.",
+            title: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
           });
 
           // Chuyển hướng đến trang đăng nhập
@@ -50,11 +54,26 @@ function AppContent() {
         }
       } catch (error) {
         console.error("Error checking login status:", error);
+        // Xử lý lỗi tương tự như trên
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        localStorage.removeItem("rememberedEmail");
+
+        Toast.fire({
+          icon: "error",
+          title: "Có lỗi xảy ra. Vui lòng đăng nhập lại.",
+        });
+
+        navigate("/login");
       }
     };
 
-    checkLoginStatus();
-  }, []);
+    // Chỉ kiểm tra session nếu có token
+    const token = localStorage.getItem("token");
+    if (token) {
+      checkLoginStatus();
+    }
+  }, [navigate]);
 
   return (
     <Routes>

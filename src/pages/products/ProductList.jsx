@@ -4,6 +4,7 @@ import Toast from "sweetalert2";
 import ProductService from "../../services/productService";
 import { urlImage } from "../../config";
 import productService from "../../services/productService";
+import Swal from "sweetalert2";
 
 export default function ProductList() {
   const [products, setProducts] = useState([]);
@@ -44,6 +45,42 @@ export default function ProductList() {
 
   const handlePageChange = (page) => {
     fetchProducts(page);
+  };
+
+  const handleDeleteProduct = async (id) => {
+    try {
+      const result = await Swal.fire({
+        title: "Confirm deletion?",
+        text: "You cannot undo once deleted!",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "Delete",
+        cancelButtonText: "Cancel",
+      });
+
+      if (result.isConfirmed) {
+        const response = await productService.deleteProduct(id);
+
+        if (response.data.success) {
+          Toast.fire({
+            icon: "success",
+            title: "Deleted successfully!",
+          });
+
+          // Gọi lại hàm load dữ liệu
+          fetchProducts();
+        }
+      }
+    } catch (err) {
+      Toast.fire({
+        icon: "error",
+        title:
+          err.response?.data?.message || "An error occurred while deleting!",
+      });
+      console.error("Error:", err);
+    }
   };
 
   const handleUpdateStatus = async (id) => {
@@ -192,6 +229,7 @@ export default function ProductList() {
                             <button
                               className="btn btn-danger btn-sm mx-1"
                               title="Delete"
+                              onClick={() => handleDeleteProduct(product.id)}
                             >
                               <i className="fa-solid fa-trash-can" />
                             </button>

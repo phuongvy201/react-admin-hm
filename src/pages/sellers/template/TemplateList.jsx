@@ -3,7 +3,6 @@ import templateService from "../../../services/templateService";
 import { urlImage } from "../../../config";
 import { Link } from "react-router-dom";
 import Swal from "sweetalert2";
-import { Toast } from "bootstrap";
 
 export default function TemplateList() {
   const [templates, setTemplates] = React.useState([]);
@@ -18,10 +17,10 @@ export default function TemplateList() {
         setTemplates(response.data.data);
         setError(null);
       } else {
-        setError("Không thể tải danh sách sản phẩm");
+        setError(response.data.message);
       }
     } catch (err) {
-      setError("Không thể tải danh sách sản phẩm");
+      setError(err.response.data.message);
     } finally {
       setLoading(false);
     }
@@ -46,13 +45,24 @@ export default function TemplateList() {
     if (result.isConfirmed) {
       const response = await templateService.deleteTemplate(id);
       if (response.data.success) {
-        Toast.fire({
+        Swal.fire({
           icon: "success",
           title: "Deleted successfully!",
         });
       }
       fetchTemplates();
     }
+  };
+
+  const handleCloneTemplate = async (id) => {
+    const response = await templateService.copyTemplate(id);
+    if (response.data.success) {
+      Swal.fire({
+        icon: "success",
+        title: "Cloned successfully!",
+      });
+    }
+    fetchTemplates();
   };
 
   return (
@@ -66,9 +76,12 @@ export default function TemplateList() {
             </div>
             <div className="col-sm-6">
               <ol className="float-sm-right">
-                <button className="btn btn-block btn-primary">
+                <Link
+                  to="/seller/templates/add-template"
+                  className="btn btn-block btn-primary"
+                >
                   + Create Template
-                </button>
+                </Link>
               </ol>
             </div>
           </div>
@@ -90,19 +103,27 @@ export default function TemplateList() {
               <div className="templates-grid-template">
                 {templates.map((template) => (
                   <div key={template.id} className="template-card-template">
-                    <img
-                      src={
-                        template.image instanceof File
-                          ? URL.createObjectURL(template.image)
-                          : template.image?.startsWith("http")
-                          ? template.image
-                          : urlImage + template.image
-                      }
-                      alt={template.template_name}
-                      className="template-image"
-                    />
+                    {template.image ? (
+                      <img
+                        src={
+                          template.image instanceof File
+                            ? URL.createObjectURL(template.image)
+                            : template.image?.startsWith("data:")
+                            ? template.image
+                            : template.image?.startsWith("http")
+                            ? template.image
+                            : urlImage + template.image
+                        }
+                        alt={template.template_name}
+                        className="template-image"
+                      />
+                    ) : (
+                      <div className="template-image d-flex align-items-center justify-content-center">
+                        <i className="fas fa-image fa-3x text-secondary"></i>
+                      </div>
+                    )}
                     <div className="template-info">
-                      <h4>{template.template_name}</h4>
+                      <h4>{template.name}</h4>
                       <p>ID: {template.id}</p>
                     </div>
                     <div className="template-actions-template">
@@ -118,7 +139,10 @@ export default function TemplateList() {
                       >
                         <i className="fas fa-trash"></i>
                       </button>
-                      <button className="action-btn clone-btn-template">
+                      <button
+                        className="action-btn clone-btn-template"
+                        onClick={() => handleCloneTemplate(template.id)}
+                      >
                         <i className="fas fa-clone"></i>
                       </button>
                     </div>

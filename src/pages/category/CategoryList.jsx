@@ -116,7 +116,7 @@ export default function CategoryList() {
         <div className="container-fluid">
           <div className="row mb-2">
             <div className="col-sm-6">
-              <h1>Products List</h1>
+              <h1>Danh mục sản phẩm</h1>
             </div>
           </div>
         </div>

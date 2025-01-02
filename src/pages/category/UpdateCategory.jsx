@@ -100,7 +100,9 @@ export default function UpdateCategory() {
 
     categoryData.append("name", name);
     categoryData.append("description", description);
-    categoryData.append("parent_id", parent_id);
+    if (parent_id !== null && parent_id !== undefined) {
+      categoryData.append("parent_id", parent_id);
+    }
     categoryData.append("status", status);
     categoryData.append("created_by", 1);
     categoryData.append("updated_by", 1);

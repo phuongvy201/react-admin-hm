@@ -96,13 +96,7 @@ export default function SellerProductList() {
       return;
     }
 
-    if (!price) {
-      Toast.fire({
-        icon: "error",
-        title: "Price is required.",
-      });
-      return;
-    }
+
 
     if (!stock) {
       Toast.fire({
@@ -578,7 +572,9 @@ export default function SellerProductList() {
                     </div>
                     <div className="modal-body">
                       <div className="form-group">
-                        <label className="mx-2">Product Name:</label>
+                        <label className="mx-2">
+                          Product Name <span className="text-danger">*</span>
+                        </label>
                         <input
                           type="text"
                           name="name"
@@ -589,7 +585,9 @@ export default function SellerProductList() {
                         />
                       </div>
                       <div className="form-group">
-                        <label className="mx-2">Template:</label>
+                        <label className="mx-2">
+                          Template <span className="text-danger">*</span>
+                        </label>
                         <select
                           className="form-control"
                           value={template_id}
@@ -598,7 +596,7 @@ export default function SellerProductList() {
                           <option value="">Select Template</option>
                           {templates.map((template) => (
                             <option key={template.id} value={template.id}>
-                              {template.template_name}
+                              {template.name}
                             </option>
                           ))}
                         </select>
@@ -613,7 +611,9 @@ export default function SellerProductList() {
                         />
                       </div>
                       <div className="form-group">
-                        <label className="mx-2">Status:</label>
+                        <label className="mx-2">
+                          Status <span className="text-danger">*</span>
+                        </label>
                         <select
                           className="form-control"
                           value={status}
@@ -624,7 +624,9 @@ export default function SellerProductList() {
                         </select>
                       </div>
                       <div className="form-group">
-                        <label className="mx-2">Stock:</label>
+                        <label className="mx-2">
+                          Stock <span className="text-danger">*</span>
+                        </label>
                         <input
                           type="number"
                           className="form-control"
@@ -645,7 +647,9 @@ export default function SellerProductList() {
                       </div>
 
                       <div className="form-group">
-                        <label className="mx-2">Upload Image:</label>
+                        <label className="mx-2">
+                          Upload Image <span className="text-danger">*</span>
+                        </label>
                         <input
                           type="file"
                           className="form-control"
@@ -709,6 +713,7 @@ export default function SellerProductList() {
                           <th style={{ width: 10 }}>ID</th>
                           <th style={{ width: 250 }}>Product</th>
                           <th>Category</th>
+                          <th>Template</th>
                           <th style={{ width: 100 }}>Price</th>
                           <th style={{ width: 100 }}>Stock</th>
                           <th style={{ width: 200 }}>Created_at</th>
@@ -756,6 +761,7 @@ export default function SellerProductList() {
                                 </>
                               )}
                             </td>
+                            <td>{product.template?.name}</td>
                             <td>${product.price?.toLocaleString()}</td>
                             <td>{product.stock}</td>
                             <td>
