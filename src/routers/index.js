@@ -36,6 +36,7 @@ import AddTemplate from "../pages/sellers/template/AddTemplate";
 import AddTopic from "../pages/topic/AddTopic";
 import TopicList from "../pages/topic/TopicList";
 import UpdateTemplate from "../pages/sellers/template/UpdateTemplate";
+import UpdateDiscountBySeller from "../pages/sellers/discount/UpdateDiscountBySeller";
 
 const routerAdmin = [
   {
@@ -50,10 +51,6 @@ const routerAdmin = [
   {
     path: "discounts", // Đường dẫn cho route
     component: DiscountList, // Component tương ứng cho route
-  },
-  {
-    path: "admin/updateDiscount/:id", // Đường dẫn cho route
-    component: UpdateDiscount, // Component tương ứng cho route
   },
   {
     path: "categories", // Đường dẫn cho route
@@ -146,6 +143,10 @@ const routerSeller = [
   {
     path: "addDiscount", // Đường dẫn cho route
     component: AddDiscountBySeller, // Component tương ứng cho route
+  },
+  {
+    path: "updateDiscount/:id", // Đường dẫn cho route
+    component: UpdateDiscountBySeller, // Component tương ứng cho route
   },
   {
     path: "profile", // Đường dẫn cho route

@@ -96,8 +96,6 @@ export default function SellerProductList() {
       return;
     }
 
-
-
     if (!stock) {
       Toast.fire({
         icon: "error",
@@ -106,7 +104,6 @@ export default function SellerProductList() {
       return;
     }
 
-    // Tạo FormData để gửi file
     const formData = new FormData();
     formData.append("template_id", template_id);
     formData.append("name", name);
@@ -115,10 +112,13 @@ export default function SellerProductList() {
     formData.append("stock", stock);
     formData.append("status", status);
 
-    // Sử dụng ref để lấy file
-    const fileInput = fileInputRef.current;
-    if (fileInput && fileInput.files.length > 0) {
-      formData.append("image", fileInput.files[0]);
+    // Thêm tất cả hình ảnh vào FormData từ imageUrl
+    if (imageUrl.length > 0) {
+      for (let i = 0; i < imageUrl.length; i++) {
+        const response = await fetch(imageUrl[i]);
+        const blob = await response.blob();
+        formData.append("images[]", blob, `image_${i}.jpg`); // Thêm hình ảnh vào FormData
+      }
     } else {
       Toast.fire({
         icon: "error",
@@ -130,12 +130,22 @@ export default function SellerProductList() {
     const response = await productService.addProductByTemplate(formData);
 
     if (response.data.success) {
+      document.getElementById("createModal").classList.remove("show");
+      document.body.classList.remove("modal-open");
+      document.querySelector(".modal-backdrop")?.remove();
+      document.getElementById("createModal").style.display = "none";
       Toast.fire({
         icon: "success",
         title: "Create product successfully!",
         timer: 1500,
       });
       fetchProducts();
+      setImageUrl([]);
+      setName("");
+      setDescription("");
+      setPrice("");
+      setStock("");
+      setStatus(1);
     } else {
       Toast.fire({
         icon: "error",
@@ -257,6 +267,12 @@ export default function SellerProductList() {
           title: "Import file successfully!",
         });
         fetchProducts();
+        setImageUrl([]);
+        setName("");
+        setDescription("");
+        setPrice("");
+        setStock("");
+        setStatus(1);
       } else {
         Toast.fire({
           icon: "error",
@@ -272,20 +288,12 @@ export default function SellerProductList() {
     }
   };
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImageUrl(reader.result); // Cập nhật URL hình ảnh từ file đã tải lên
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
   const { getRootProps, getInputProps } = useDropzone({
     onDrop: (acceptedFiles) => {
-      setImageUrl(acceptedFiles[0]);
+      const newImageUrls = acceptedFiles.map((file) =>
+        URL.createObjectURL(file)
+      );
+      setImageUrl((prevUrls) => [...prevUrls, ...newImageUrls]); // Cập nhật danh sách hình ảnh
     },
     multiple: true,
     maxSize: 10 * 1024 * 1024, // 10MB
@@ -648,23 +656,49 @@ export default function SellerProductList() {
 
                       <div className="form-group">
                         <label className="mx-2">
-                          Upload Image <span className="text-danger">*</span>
+                          Upload Images <span className="text-danger">*</span>
                         </label>
-                        <input
-                          type="file"
-                          className="form-control"
-                          accept="image/*"
-                          ref={fileInputRef}
-                          onChange={handleFileChange}
-                        />
-                        {imageUrl && (
+                        <div
+                          {...getRootProps()}
+                          className="btn btn-primary mt-2"
+                        >
+                          Choose Image
+                          <input {...getInputProps()} className="d-none" />
+                        </div>
+                        {imageUrl.length > 0 && (
                           <div>
-                            <h4>Image Preview:</h4>
-                            <img
-                              src={imageUrl}
-                              alt="Preview"
-                              style={{ maxHeight: "200px", marginTop: "10px" }}
-                            />
+                            <h4>Image Previews:</h4>
+                            <div className="d-flex flex-wrap justify-content-start">
+                              {imageUrl.map((url, index) => (
+                                <div
+                                  key={index}
+                                  className="mx-2 position-relative"
+                                >
+                                  <img
+                                    src={url}
+                                    className="img-fluid my-2"
+                                    alt={`Preview ${index + 1}`}
+                                    style={{
+                                      maxHeight: "200px",
+                                      borderRadius: "8px",
+                                      boxShadow: "0 2px 5px rgba(0, 0, 0, 0.2)",
+                                    }}
+                                  />
+                                  <button
+                                    className="btn btn-danger btn-sm rounded-circle position-absolute"
+                                    style={{ top: "5px", right: "5px" }}
+                                    onClick={() => {
+                                      const updatedUrls = imageUrl.filter(
+                                        (_, i) => i !== index
+                                      );
+                                      setImageUrl(updatedUrls); // Cập nhật lại danh sách hình ảnh
+                                    }}
+                                  >
+                                    &times; {/* Biểu tượng x để xóa */}
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         )}
                       </div>
@@ -733,17 +767,19 @@ export default function SellerProductList() {
                                   {product.name}
                                 </Link>
                               </div>
-                              {product.image && (
+                              {product.main_image && (
                                 <div>
                                   <img
                                     className="img-fluid"
                                     style={{ maxHeight: "100px" }}
                                     src={
-                                      product.image instanceof File
-                                        ? URL.createObjectURL(product.image)
-                                        : product.image?.startsWith("http")
-                                        ? product.image
-                                        : urlImage + product.image
+                                      product.main_image instanceof File
+                                        ? URL.createObjectURL(
+                                            product.main_image
+                                          )
+                                        : product.main_image?.startsWith("http")
+                                        ? product.main_image
+                                        : urlImage + product.main_image
                                     }
                                     alt={product.name}
                                   />

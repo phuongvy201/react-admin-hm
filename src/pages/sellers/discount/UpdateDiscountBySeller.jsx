@@ -83,7 +83,7 @@ export default function UpdateDiscountBySeller() {
         });
 
         // Có thể chuyển hướng về trang danh sách sau khi cập nhật thành công
-        navigate("/admin/discounts");
+        navigate("/seller/discounts");
       } else {
         window.Toast.fire({
           icon: "error",

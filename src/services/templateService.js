@@ -19,6 +19,9 @@ const templateService = {
   getTemplate: (id) => {
     return httpAxios.get(`/seller/templates/${id}`);
   },
+  addVariants: (id, data) => {
+    return httpAxios.post(`/seller/product-templates/${id}/variants`, data);
+  },
 };
 
 export default templateService;

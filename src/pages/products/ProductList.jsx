@@ -189,17 +189,17 @@ export default function ProductList() {
                                 {product.name}
                               </Link>
                             </div>
-                            {product.image && (
+                            {product.main_image && (
                               <div>
                                 <img
                                   className="img-fluid"
                                   style={{ maxHeight: "100px" }}
                                   src={
-                                    product.image instanceof File
-                                      ? URL.createObjectURL(product.image)
-                                      : product.image?.startsWith("http")
-                                      ? product.image
-                                      : urlImage + product.image
+                                    product.main_image instanceof File
+                                      ? URL.createObjectURL(product.main_image)
+                                      : product.main_image?.startsWith("http")
+                                      ? product.main_image
+                                      : urlImage + product.main_image
                                   }
                                   alt={product.name}
                                 />

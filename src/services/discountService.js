@@ -11,7 +11,7 @@ const discountService = {
     return httpAxios.post(`admin/discounts/${id}/status`);
   },
   updateDiscount: (id, data) => {
-    return httpAxios.post(`admin/discounts/${id}/update`, data);
+    return httpAxios.post(`seller/discounts/${id}/update`, data);
   },
   getDiscountById: (id) => {
     return httpAxios.get(`admin/discounts/${id}`);

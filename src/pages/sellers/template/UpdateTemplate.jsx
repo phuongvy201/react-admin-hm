@@ -10,6 +10,9 @@ import templateService from "../../../services/templateService";
 import Swal from "sweetalert2";
 import { useParams } from "react-router-dom";
 import { Modal } from "bootstrap";
+import { urlImage } from "../../../config";
+import { CKEditor } from "@ckeditor/ckeditor5-react";
+import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
 
 export default function UpdateTemplate() {
   const { id } = useParams();
@@ -28,6 +31,8 @@ export default function UpdateTemplate() {
   const [newQuantity, setNewQuantity] = useState("");
   const [selectedForBulk, setSelectedForBulk] = useState([]);
   const [imageUrl, setImageUrl] = useState("");
+  const [loading, setLoading] = useState(false);
+
   const Toast = Swal.mixin({
     toast: true,
     position: "top-end",
@@ -57,7 +62,7 @@ export default function UpdateTemplate() {
         // Fetch template details
         const templateResponse = await templateService.getTemplate(id);
         const templateData = templateResponse.data.data;
-
+        console.log("templateData", templateData);
         setTemplate(templateData);
         setImageUrl(templateData.image || "");
 
@@ -67,34 +72,67 @@ export default function UpdateTemplate() {
           label: templateData.category.name,
         });
 
-        // Format và set options list từ attributes
+        setSelectedFiles(templateData.images || []);
+
+        // Format options list từ attributes
         const formattedOptions = templateData.attributes.map((attr) => ({
           option: attr.name,
-          values: templateData.variants.reduce((acc, variant) => {
-            const attrValue = variant.attributes.find(
-              (a) => a.attribute_name === attr.name
-            );
-            if (attrValue && !acc.find((v) => v.label === attrValue.value)) {
-              acc.push({
-                value: attrValue.value.toLowerCase(),
-                label: attrValue.value,
-              });
-            }
-            return acc;
-          }, []),
+          values: attr.values.map((value) => ({
+            value: value.value,
+            label: value.value,
+          })),
         }));
         setOptionsList(formattedOptions);
 
-        // Set variants với format mới
-        const formattedVariants = templateData.variants.map((variant) => ({
-          id: variant.id,
-          variant: variant.attributes.map((attr) => attr.value).join(", "),
-          sku: variant.sku,
-          price: variant.price,
-          quantity: variant.quantity,
-          image: variant.image,
-        }));
-        setVariants(formattedVariants);
+        // Tạo map của variants hiện có để dễ truy cập
+        const existingVariantsMap = templateData.variants.reduce(
+          (acc, variant) => {
+            const variantKey = variant.attributes
+              .map((attr) => attr.value)
+              .sort() // Sắp xếp để đảm bảo thứ tự nhất quán
+              .join(", ");
+            acc[variantKey] = variant; // Lưu variant với hình ảnh
+            return acc;
+          },
+          {}
+        );
+
+        // Tạo tất cả combinations có thể từ options
+        const valuesList = formattedOptions.map((item) =>
+          item.values.map((v) => v.label)
+        );
+        const combinations = generateCombinations(valuesList);
+
+        // Tạo variants mới với dữ liệu từ existing variants nếu có
+        const newVariants = combinations.map((combination) => {
+          // Sắp xếp combination để đảm bảo thứ tự nhất quán
+          const sortedCombination = combination.sort();
+          const variantKey = sortedCombination.join(", ");
+          const existingVariant = existingVariantsMap[variantKey];
+
+          console.log("existingVariant", existingVariant); // Kiểm tra giá trị của existingVariant
+
+          // Tìm kiếm trong dữ liệu mới để lấy thông tin chính xác
+          const newVariantData = templateData.variants.find((variant) => {
+            // Tách sku thành các phần và sắp xếp
+            const sortedSkuParts = variant.sku.split("-").sort().join("-");
+            // Tạo variantKey từ combination và sắp xếp
+            const sortedVariantKeyParts = sortedCombination.join("-");
+
+            return sortedSkuParts === sortedVariantKeyParts;
+          });
+
+          return {
+            variant: variantKey,
+            sku: existingVariant?.sku || variantKey.replace(/, /g, "-"),
+            price: newVariantData?.price || "",
+            quantity: newVariantData?.quantity || "",
+            image: existingVariant?.image || "", // Đảm bảo lấy hình ảnh từ existingVariant
+          };
+        });
+
+        setVariants(newVariants);
+        console.log("newVariants", newVariants);
 
         // Fetch categories
         const categoriesResponse = await categoryService.getFlatCategories();
@@ -112,7 +150,7 @@ export default function UpdateTemplate() {
       fetchData();
     }
   }, [id]);
-
+  console.log("variants", variants);
   const handleImageUrlChange = (event) => {
     setImageUrl(event.target.value);
   };
@@ -125,8 +163,8 @@ export default function UpdateTemplate() {
 
     setVariants((prevVariants) =>
       prevVariants.map((variant) => {
-        const variantValues = variant.variant.split(", ");
-        if (variantValues.includes(key)) {
+        // Kiểm tra xem variant có chứa key không
+        if (variant.variant.includes(key)) {
           return {
             ...variant,
             image: url,
@@ -167,15 +205,43 @@ export default function UpdateTemplate() {
         item.values.map((v) => v.label)
       );
       const combinations = generateCombinations(valuesList);
+
+      // Tạo map của variants cũ
+      const existingVariantsMap = variants.reduce((acc, variant) => {
+        acc[variant.variant] = variant;
+        return acc;
+      }, {});
+
       const newVariants = combinations.map((combination) => {
-        const variantKey = combination.join(", ");
+        // Sắp xếp combination để đảm bảo thứ tự nhất quán
+        const sortedCombination = combination.sort();
+        const variantKey = sortedCombination.join(", ");
+        const existingVariant = existingVariantsMap[variantKey];
+
+        console.log("existingVariant", existingVariant);
+
+        // Tìm kiếm trong dữ liệu mới để lấy thông tin chính xác
+        const newVariantData = template?.variants.find((variant) => {
+          // Tách sku thành các phần và sắp xếp
+          const sortedSkuParts = variant.sku.split("-").sort().join("-");
+          // Tạo variantKey từ combination và sắp xếp
+          const sortedVariantKeyParts = sortedCombination.join("-");
+
+          return sortedSkuParts === sortedVariantKeyParts;
+        });
+
         return {
           variant: variantKey,
-          price: "",
-          quantity: "",
-          image: images[variantKey] || null, // Đảm bảo hình ảnh được gán đúng
+          id: existingVariant?.id || null,
+          sku:
+            existingVariant?.sku ||
+            variantKey.replace(/, /g, "-").toLowerCase(),
+          price: existingVariant?.price || "",
+          quantity: existingVariant?.quantity || "",
+          image: existingVariant?.image || images[variantKey] || null,
         };
       });
+
       setVariants(newVariants);
 
       setSelectedOption(null);
@@ -183,33 +249,22 @@ export default function UpdateTemplate() {
     }
   };
 
-  const handleImageUpload = (key, event) => {
-    const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        // Cập nhật images state
-        setImages((prevImages) => ({
-          ...prevImages,
-          [key]: reader.result,
-        }));
-
-        // Cập nhật variants state với hình ảnh mới
-        setVariants((prevVariants) =>
-          prevVariants.map((variant) => {
-            // Kiểm tra xem variant có chứa key không
-            if (variant.variant.includes(key)) {
-              return {
-                ...variant,
-                image: reader.result,
-              };
-            }
-            return variant;
-          })
-        );
-      };
-      reader.readAsDataURL(file);
+  const handleImageUpload = (event) => {
+    const newFiles = Array.from(event.target.files);
+    if (selectedFiles.length + newFiles.length > 8) {
+      Toast.fire({
+        icon: "error",
+        title: "You can only upload a maximum of 8 images.",
+      });
+      return;
     }
+    setLoading(true);
+    setSelectedFiles((prevFiles) => [...prevFiles, ...newFiles]);
+    event.target.value = ""; // Reset giá trị của input file
+    setLoading(false);
+  };
+  const handleRemoveImage = (index) => {
+    setSelectedFiles((prevFiles) => prevFiles.filter((_, i) => i !== index));
   };
 
   const toggleImageUpload = (index) => {
@@ -275,80 +330,6 @@ export default function UpdateTemplate() {
     }
   };
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-
-    try {
-      // Format lại dữ liệu attributes
-      const attributesData = optionsList.map((option) => {
-        console.log("Processing option:", option);
-        return {
-          name: option.option,
-          values: option.values.map((v) =>
-            typeof v === "string" ? v : v.label
-          ),
-        };
-      });
-
-      // Format lại dữ liệu variants
-      const variantsData = variants.map((variant) => {
-        const variantValues = variant.variant.split(", ");
-        const attributes = variantValues
-          .map((value, index) => {
-            // Đảm bảo optionsList[index] tồn tại
-            if (!optionsList[index]) {
-              console.error("Missing option for index:", index);
-              return null;
-            }
-            return {
-              attribute_name: optionsList[index].option,
-              value: value.trim(),
-            };
-          })
-          .filter((attr) => attr !== null);
-
-        return {
-          id: variant.id, // Thêm ID nếu là variant đã tồn tại
-          sku: variant.sku || variant.variant.replace(/, /g, "-").toLowerCase(),
-          price: parseFloat(variant.price) || 0,
-          quantity: parseInt(variant.quantity) || 0,
-          image: variant.image || null,
-          attributes: attributes,
-        };
-      });
-
-      const requestData = {
-        name: template.name,
-        description: template.description,
-        category_id: selectedCategory.value,
-        base_price: parseFloat(template.base_price),
-        image: imageUrl,
-        attributes: attributesData,
-        variants: variantsData,
-      };
-
-      console.log("Request data being sent:", requestData);
-
-      const response = await templateService.updateTemplate(id, requestData);
-      console.log("Response received:", response);
-
-      // Kiểm tra response và hiển thị thông báo thành công
-      Toast.fire({
-        icon: "success",
-        title: "Cập nhật template thành công",
-      });
-
-      // Optional: Redirect sau khi update thành công
-      // navigate('/sellers/templates');
-    } catch (error) {
-      console.error("Error updating template:", error);
-      Toast.fire({
-        icon: "error",
-        title: error.response?.data?.message || "Lỗi khi cập nhật template",
-      });
-    }
-  };
-
   const handleRemoveVariant = (variantToRemove) => {
     setVariants(
       variants.filter((variant) => variant.variant !== variantToRemove.variant)
@@ -358,6 +339,128 @@ export default function UpdateTemplate() {
   const handleShowModal = (modalId) => {
     const modal = new Modal(document.getElementById(modalId));
     modal.show();
+  };
+
+  const getImageSource = (file) => {
+    if (file instanceof File) {
+      return URL.createObjectURL(file); // Trường hợp file mới upload
+    } else if (file && file.url) {
+      return urlImage + file.url; // Trường hợp ảnh từ server có file.url
+    }
+    return ""; // Trường hợp không hợp lệ
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      // Chuẩn bị dữ liệu attributes sử dụng forEach
+      const attributes = [];
+      optionsList.forEach((option) => {
+        const values = [];
+        option.values.forEach((v) => {
+          values.push({
+            value: v.label,
+          });
+        });
+
+        attributes.push({
+          name: option.option,
+          values: values,
+        });
+      });
+
+      // Chuẩn bị dữ liệu variants
+      const formattedVariants = variants.map((variant) => {
+        // Tách các thuộc tính từ chuỗi variant
+        const attributeValues = variant.variant.split(", ").map((value) => {
+          // Tìm tên thuộc tính tương ứng với giá trị
+          const attributeName = optionsList.find((opt) =>
+            opt.values.some((v) => v.label === value)
+          )?.option;
+
+          return {
+            attribute_name: attributeName,
+            value: value,
+          };
+        });
+
+        // Chuẩn hóa SKU bằng cách sắp xếp các phần
+        const sortedSkuParts = variant.sku.split("-").sort().join("-");
+
+        return {
+          sku: sortedSkuParts, // Sử dụng SKU đã được chuẩn hóa
+          price: variant.price || 0,
+          quantity: variant.quantity || 0,
+          image: variant.image,
+          attributes: attributeValues,
+        };
+      });
+
+      // Tạo FormData để upload files
+      const formData = new FormData();
+      formData.append("name", template.name);
+      formData.append("description", template.description);
+      formData.append("category_id", selectedCategory.value);
+      formData.append("base_price", template.base_price);
+
+      // Thêm attributes và values theo cấu trúc mới
+      attributes.forEach((attribute, index) => {
+        formData.append(`attributes[${index}][name]`, attribute.name);
+        attribute.values.forEach((value, valueIndex) => {
+          formData.append(
+            `attributes[${index}][values][${valueIndex}][value]`,
+            value.value
+          );
+        });
+      });
+
+      // Thêm variants với việc phân tách dữ liệu
+      formattedVariants.forEach((variant, index) => {
+        formData.append(`variants[${index}][sku]`, variant.sku);
+        formData.append(`variants[${index}][image]`, variant.image || "");
+
+        // Phân tách giá và số lượng
+        formData.append(`variants[${index}][price]`, variant.price);
+        formData.append(`variants[${index}][quantity]`, variant.quantity);
+        formData.append(`variants[${index}][image]`, variant.image || "");
+
+        variant.attributes.forEach((attr, attrIndex) => {
+          formData.append(
+            `variants[${index}][attributes][${attrIndex}][attribute_name]`,
+            attr.attribute_name
+          );
+          formData.append(
+            `variants[${index}][attributes][${attrIndex}][value]`,
+            attr.value
+          );
+        });
+      });
+
+      // Thêm các file ảnh mới
+      selectedFiles.forEach((file, index) => {
+        if (file instanceof File) {
+          formData.append(`images[${index}]`, file);
+        } else {
+          formData.append(`images[${index}]`, file.url);
+        }
+      });
+
+      const response = await templateService.updateTemplate(id, formData);
+
+      if (response.data.success) {
+        Toast.fire({
+          icon: "success",
+          title: "Template updated successfully",
+        });
+      }
+    } catch (error) {
+      console.error("Error updating template:", error);
+      Toast.fire({
+        icon: "error",
+        title: error.response?.data?.message || "Error updating template",
+      });
+    }
   };
 
   return (
@@ -425,17 +528,19 @@ export default function UpdateTemplate() {
                     {/* Description */}
                     <div className="form-group mb-4">
                       <label>Description</label>
-                      <textarea
-                        className="form-control"
-                        rows={5}
-                        placeholder="Enter product description"
-                        defaultValue={template?.description}
-                        onChange={(e) =>
+                      <CKEditor
+                        editor={ClassicEditor}
+                        data={template?.description}
+                        onChange={(event, editor) => {
+                          const data = editor.getData();
                           setTemplate((prev) => ({
                             ...prev,
-                            description: e.target.value,
-                          }))
-                        }
+                            description: data,
+                          }));
+                        }}
+                        config={{
+                          placeholder: "Enter product description",
+                        }}
                       />
                     </div>
 
@@ -457,24 +562,68 @@ export default function UpdateTemplate() {
 
                     {/* Product Image */}
                     <div className="form-group mb-4">
-                      <label>Product Image URL</label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        placeholder="Enter image URL"
-                        value={imageUrl}
-                        onChange={(e) => setImageUrl(e.target.value)}
-                      />
-                      {imageUrl && (
-                        <div className="mt-2">
-                          <img
-                            src={imageUrl}
-                            alt="Product preview"
-                            style={{ maxWidth: "200px" }}
-                          />
-                        </div>
-                      )}
+                      <label>Product Images (max 8 images)</label>
+                      <div className="input-group">
+                        <input
+                          type="file"
+                          className="d-none"
+                          accept="image/*"
+                          multiple
+                          id="fileInput"
+                          onChange={(e) => handleImageUpload(e)}
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          id="selectButton"
+                          onClick={() =>
+                            document.getElementById("fileInput").click()
+                          }
+                        >
+                          Select Images
+                        </button>
+                        <span className="ml-2 align-middle" id="fileCount">
+                          {selectedFiles.length} files selected
+                        </span>
+                      </div>
+                      <div
+                        id="imagePreview"
+                        className="text-center text-muted mt-2"
+                      >
+                        {loading ? (
+                          <div>Loading...</div>
+                        ) : selectedFiles.length > 0 ? (
+                          selectedFiles.map((file, index) => (
+                            <div
+                              key={index}
+                              className="position-relative d-inline-block"
+                            >
+                              <img
+                                src={getImageSource(file)}
+                                alt={`preview-${index}`}
+                                style={{
+                                  width: "100px",
+                                  height: "100px",
+                                  objectFit: "cover",
+                                  margin: "5px",
+                                }}
+                              />
+                              <button
+                                type="button"
+                                className="btn btn-danger btn-sm position-absolute"
+                                style={{ top: 0, right: 0 }}
+                                onClick={() => handleRemoveImage(index)}
+                              >
+                                <i className="fa-solid fa-circle-xmark"></i>
+                              </button>
+                            </div>
+                          ))
+                        ) : (
+                          "No images uploaded yet."
+                        )}
+                      </div>
                     </div>
+
                     {/* Size Chart Image */}
 
                     {/* Options */}
@@ -606,23 +755,58 @@ export default function UpdateTemplate() {
                                             };
                                             setOptionsList(updatedOptionsList);
 
-                                            // Cập nhật variants
+                                            // Cập nhật variants với việc giữ lại thông tin cũ
                                             const valuesList =
                                               updatedOptionsList.map((item) =>
                                                 item.values.map((v) => v.label)
                                               );
                                             const combinations =
                                               generateCombinations(valuesList);
+
+                                            // Tạo map của variants cũ để dễ truy cập
+                                            const existingVariantsMap =
+                                              variants.reduce(
+                                                (acc, variant) => {
+                                                  acc[variant.variant] =
+                                                    variant;
+                                                  return acc;
+                                                },
+                                                {}
+                                              );
+
                                             const newVariants =
                                               combinations.map(
-                                                (combination) => ({
-                                                  variant:
-                                                    combination.join(", "),
-                                                  price: "",
-                                                  quantity: "",
-                                                  image: null,
-                                                })
+                                                (combination) => {
+                                                  const variantKey =
+                                                    combination.join(", ");
+                                                  const existingVariant =
+                                                    existingVariantsMap[
+                                                      variantKey
+                                                    ];
+
+                                                  return {
+                                                    variant: variantKey,
+                                                    id:
+                                                      existingVariant?.id ||
+                                                      null,
+                                                    sku:
+                                                      existingVariant?.sku ||
+                                                      variantKey
+                                                        .replace(/, /g, "-")
+                                                        .toLowerCase(),
+                                                    price:
+                                                      existingVariant?.price ||
+                                                      "",
+                                                    quantity:
+                                                      existingVariant?.quantity ||
+                                                      "",
+                                                    image:
+                                                      existingVariant?.image ||
+                                                      null,
+                                                  };
+                                                }
                                               );
+
                                             setVariants(newVariants);
                                           }}
                                         />
@@ -701,6 +885,32 @@ export default function UpdateTemplate() {
                                             }}
                                           />
                                         )}
+                                        <input
+                                          type="file"
+                                          className="form-control d-none"
+                                          accept="image/*"
+                                          onChange={(e) => {
+                                            const file = e.target.files[0];
+                                            if (file) {
+                                              const reader = new FileReader();
+                                              reader.onloadend = () => {
+                                                handleImageUrlVariant(
+                                                  size.label,
+                                                  reader.result
+                                                );
+                                              };
+                                              reader.readAsDataURL(file);
+                                            }
+                                          }}
+                                          id={`fileInput-${size.label}`}
+                                          data-label={size.label}
+                                        />
+                                        <label
+                                          className="btn btn-sm btn-primary mx-2"
+                                          htmlFor={`fileInput-${size.label}`}
+                                        >
+                                          Upload Image
+                                        </label>
                                       </div>
                                     </div>
                                   ))}
@@ -843,7 +1053,9 @@ export default function UpdateTemplate() {
                           <tbody>
                             {variants.map((variant, index) => (
                               <tr key={index}>
-                                <td>{variant.variant}</td>
+                                <td>
+                                  {variant.variant.split(", ").join(", ")}
+                                </td>
                                 <td>
                                   {variant.image ? (
                                     <img
@@ -856,7 +1068,7 @@ export default function UpdateTemplate() {
                                       }}
                                     />
                                   ) : (
-                                    "No image"
+                                    <span className="text-muted">No image</span>
                                   )}
                                 </td>
                                 <td>
@@ -873,6 +1085,7 @@ export default function UpdateTemplate() {
                                         )
                                       )
                                     }
+                                    placeholder="Enter price"
                                   />
                                 </td>
                                 <td>
@@ -889,6 +1102,7 @@ export default function UpdateTemplate() {
                                         )
                                       )
                                     }
+                                    placeholder="Enter quantity"
                                   />
                                 </td>
                                 <td>

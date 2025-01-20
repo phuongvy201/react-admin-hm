@@ -21,9 +21,11 @@ export default function EditProduct() {
     description: "",
     stock: "",
     status: "1",
-    image: null,
+    images: [],
   });
   const [templates, setTemplates] = useState([]);
+  const [images, setImages] = useState([]);
+  const [uploadedImage, setUploadedImage] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -39,7 +41,11 @@ export default function EditProduct() {
         // Fetch product
         const productResponse = await productService.getProductById(id);
         const productData = productResponse.data.data;
-        setProduct(productData);
+        setProduct({
+          ...productData,
+          images: productData.images || [],
+        });
+        setImages(productData.images);
 
         // Chỉ cập nhật template_id của sản phẩm thay vì ghi đè toàn bộ templates
         if (productData.template_id) {
@@ -67,10 +73,20 @@ export default function EditProduct() {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setProduct((prev) => ({
-        ...prev,
-        image: file,
-      }));
+      const validImageTypes = [
+        "image/jpeg",
+        "image/png",
+        "image/jpg",
+        "image/gif",
+        "image/webp",
+      ];
+      if (validImageTypes.includes(file.type) && images.length < 8) {
+        setImages((prev) => [...prev, file]);
+      } else if (images.length >= 8) {
+        toast.error("Bạn chỉ có thể tải lên tối đa 8 ảnh.");
+      } else {
+        toast.error("Định dạng tệp không hợp lệ. Vui lòng chọn hình ảnh.");
+      }
     }
   };
   // Thêm useEffect để khởi tạo Toast
@@ -89,7 +105,7 @@ export default function EditProduct() {
 
     window.Toast = Toast;
   }, []);
-
+  console.log("product.images", product.images);
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -103,32 +119,25 @@ export default function EditProduct() {
       formData.append("status", product.status);
       formData.append("template_id", product.template_id);
 
-      // Xử lý ảnh
-      if (product.image) {
-        if (product.image instanceof File) {
-          // Nếu là file mới upload
-          formData.append("image", product.image);
-        } else if (typeof product.image === "string") {
-          // Nếu là ảnh cũ, gửi tên file
-          formData.append("old_image", product.image);
+      // Gửi hình ảnh theo đúng thứ tự hiển thị
+      images.forEach((image, index) => {
+        if (image instanceof File) {
+          formData.append(`images[${index}]`, image);
+        } else {
+          formData.append(`images[${index}]`, image.image_url);
         }
-      }
+      });
 
       const response = await productService.updateProduct(id, formData);
 
       if (response.data.success) {
-        // Thông báo thành công
         window.Toast.fire({
           icon: "success",
           title: "Cập nhật sản phẩm thành công!",
-        }).then(() => {
-          // Load lại trang sau khi toast biến mất
-          window.location.reload();
         });
       }
     } catch (error) {
       console.error("Lỗi chi tiết:", error);
-
       window.Toast.fire({
         icon: "error",
         title:
@@ -300,24 +309,61 @@ export default function EditProduct() {
                   <div className="form-group">
                     <label htmlFor="inputStatus">Avatar</label>
                     <div>
-                      <div className="mb-4 d-flex justify-content-center">
-                        <img
-                          src={
-                            product.image instanceof File
-                              ? URL.createObjectURL(product.image)
-                              : product.image?.startsWith("http")
-                              ? product.image
-                              : urlImage + product.image
-                          }
-                          alt="Product"
-                          style={{ width: "60%" }}
-                        />
+                      <div className="mb-4 d-flex flex-wrap justify-content-center">
+                        {/* Hiển thị tất cả hình ảnh (cả cũ và mới) */}
+                        {images.map((image, index) => (
+                          <div key={index} className="position-relative m-2">
+                            <img
+                              src={
+                                image instanceof File
+                                  ? URL.createObjectURL(image)
+                                  : image.image_url?.startsWith("http")
+                                  ? image.image_url
+                                  : urlImage + image.image_url
+                              }
+                              alt={`Product ${index + 1}`}
+                              className="img-thumbnail"
+                              style={{
+                                width: "200px",
+                                height: "200px",
+                                objectFit: "cover",
+                                borderRadius: "8px",
+                                boxShadow: "0 2px 5px rgba(0, 0, 0, 0.2)",
+                              }}
+                            />
+                            <button
+                              type="button"
+                              className="btn btn-danger btn-sm position-absolute"
+                              style={{
+                                top: "5px",
+                                right: "5px",
+                                borderRadius: "50%",
+                                width: "25px",
+                                height: "25px",
+                                padding: "0",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                              onClick={() => {
+                                setImages((prevImages) =>
+                                  prevImages.filter((_, i) => i !== index)
+                                );
+                              }}
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
                       </div>
+
+                      {/* Nút thêm hình ảnh */}
                       <div className="d-flex justify-content-center">
                         <div className="btn btn-info btn-md btn-rounded">
                           <label
                             className="form-label text-white m-1"
                             htmlFor="customFile1"
+                            style={{ cursor: "pointer", marginBottom: 0 }}
                           >
                             <small>Choose file</small>
                           </label>
@@ -325,10 +371,21 @@ export default function EditProduct() {
                             type="file"
                             className="form-control d-none"
                             id="customFile1"
-                            onChange={handleImageChange}
+                            onChange={(e) => {
+                              if (e.target.files[0]) {
+                                handleImageChange(e);
+                              }
+                            }}
                             accept="image/*"
                           />
                         </div>
+                      </div>
+
+                      {/* Hiển thị giới hạn số lượng ảnh */}
+                      <div className="text-center mt-2">
+                        <small className="text-muted">
+                          {images.length}/8 ảnh đã được tải lên
+                        </small>
                       </div>
                     </div>
                   </div>

@@ -14,6 +14,7 @@ export default function TemplateList() {
       setLoading(true);
       const response = await templateService.getTemplates();
       if (response.data.success) {
+        console.log("response.data.data", response.data.data);
         setTemplates(response.data.data);
         setError(null);
       } else {
@@ -103,16 +104,16 @@ export default function TemplateList() {
               <div className="templates-grid-template">
                 {templates.map((template) => (
                   <div key={template.id} className="template-card-template">
-                    {template.image ? (
+                    {template.default_image ? (
                       <img
                         src={
-                          template.image instanceof File
-                            ? URL.createObjectURL(template.image)
-                            : template.image?.startsWith("data:")
-                            ? template.image
-                            : template.image?.startsWith("http")
-                            ? template.image
-                            : urlImage + template.image
+                          template.default_image instanceof File
+                            ? URL.createObjectURL(template.default_image)
+                            : template.default_image?.startsWith("data:")
+                            ? template.default_image
+                            : template.default_image?.startsWith("http")
+                            ? template.default_image
+                            : urlImage + template.default_image
                         }
                         alt={template.template_name}
                         className="template-image"

@@ -8,7 +8,9 @@ import {
 import categoryService from "../../../services/categoryService";
 import templateService from "../../../services/templateService";
 import Swal from "sweetalert2";
-import { Modal } from "bootstrap";
+import { useNavigate } from "react-router-dom";
+import { CKEditor } from "@ckeditor/ckeditor5-react";
+import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
 
 export default function AddTemplate() {
   const [selectedFiles, setSelectedFiles] = useState([]);
@@ -25,6 +27,8 @@ export default function AddTemplate() {
   const [newQuantity, setNewQuantity] = useState("");
   const [selectedForBulk, setSelectedForBulk] = useState([]);
   const [imageUrl, setImageUrl] = useState("");
+  const [description, setDescription] = useState("");
+  const [loading, setLoading] = useState(false);
   const Toast = Swal.mixin({
     toast: true,
     position: "top-end",
@@ -36,6 +40,8 @@ export default function AddTemplate() {
       toast.addEventListener("mouseleave", Swal.resumeTimer);
     },
   });
+  const navigate = useNavigate();
+
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -120,33 +126,19 @@ export default function AddTemplate() {
     }
   };
 
-  const handleImageUpload = (key, event) => {
-    const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        // Cập nhật images state
-        setImages((prevImages) => ({
-          ...prevImages,
-          [key]: reader.result,
-        }));
-
-        // Cập nhật variants state với hình ảnh mới
-        setVariants((prevVariants) =>
-          prevVariants.map((variant) => {
-            // Kiểm tra xem variant có chứa key không
-            if (variant.variant.includes(key)) {
-              return {
-                ...variant,
-                image: reader.result,
-              };
-            }
-            return variant;
-          })
-        );
-      };
-      reader.readAsDataURL(file);
+  const handleImageUpload = (event) => {
+    const newFiles = Array.from(event.target.files);
+    if (selectedFiles.length + newFiles.length > 8) {
+      Toast.fire({
+        icon: "error",
+        title: "You can only upload a maximum of 8 images.",
+      });
+      return;
     }
+    setLoading(true);
+    setSelectedFiles((prevFiles) => [...prevFiles, ...newFiles]);
+    event.target.value = ""; // Reset giá trị của input file
+    setLoading(false);
   };
 
   const toggleImageUpload = (index) => {
@@ -215,24 +207,21 @@ export default function AddTemplate() {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    // Kiểm tra các trường cần thiết
+    // Kiểm tra các trường bắt buộc
     const errors = [];
+    const name = document.querySelector('input[formcontrolname="name"]').value;
+    const basePrice = document.querySelector(
+      'input[formcontrolname="basePrice"]'
+    ).value;
 
-    if (!document.querySelector('input[formcontrolname="name"]').value) {
-      errors.push("Name is required.");
+    // Kiểm tra description
+    if (!name) errors.push("Name is required.");
+    if (!description || description.trim() === "") {
+      errors.push("Description is required."); // Kiểm tra nếu description rỗng
     }
+    if (!selectedCategory) errors.push("Category is required.");
+    if (!basePrice) errors.push("Base price is required.");
 
-    if (
-      !document.querySelector('textarea[formcontrolname="description"]').value
-    ) {
-      errors.push("Description is required.");
-    }
-
-    if (!selectedCategory) {
-      errors.push("Category is required.");
-    }
-
-    // Nếu có lỗi, hiển thị thông báo
     if (errors.length > 0) {
       errors.forEach((error) => {
         Toast.fire({
@@ -240,61 +229,84 @@ export default function AddTemplate() {
           title: error,
         });
       });
-      return; // Dừng hàm nếu có lỗi
+      return;
     }
 
     try {
-      // Chuẩn bị dữ liệu attributes
+      // Chuẩn bị dữ liệu attributes và variants
       const attributesData = optionsList.map((option) => ({
         name: option.option,
       }));
 
-      // Chuẩn bị dữ liệu variants
       const variantsData = variants.map((variant) => {
         const variantValues = variant.variant.split(", ");
-
-        // Map các attributes cho mỗi variant
-        const attributes = variantValues.map((value, index) => ({
-          attribute_name: optionsList[index].option,
-          value: value.trim(),
-        }));
 
         return {
           sku: variant.variant.replace(/, /g, "-"),
           price: parseFloat(variant.price) || 0,
-          quantity: parseInt(variant.quantity) || 0,
+          quantity: parseInt(variant.quantity) || 30,
           image: variant.image || null,
-          attributes: attributes,
+          attributes: variantValues.map((value, index) => ({
+            attribute_name: optionsList[index].option,
+            value: value.trim(),
+          })),
         };
       });
 
-      // Gửi tất cả dữ liệu trong một request
-      const response = await templateService.postTemplates({
-        name: document.querySelector('input[formcontrolname="name"]').value,
-        description: document.querySelector(
-          'textarea[formcontrolname="description"]'
-        ).value,
-        category_id: selectedCategory.value,
-        base_price: parseFloat(
-          document.querySelector('input[formcontrolname="basePrice"]').value
-        ),
-        image: imageUrl,
-        attributes: attributesData,
-        variants: variantsData, // Thêm variants vào request
+      // Tạo FormData object
+      const formData = new FormData();
+      formData.append("name", name);
+      formData.append("description", description); // Gửi description ở định dạng HTML
+      formData.append("category_id", selectedCategory.value);
+      formData.append("base_price", parseFloat(basePrice));
+
+      // Append attributes array
+      attributesData.forEach((attr, index) => {
+        formData.append(`attributes[${index}][name]`, attr.name);
       });
 
+      // Append variants array
+      variantsData.forEach((variant, index) => {
+        formData.append(`variants[${index}][sku]`, variant.sku);
+        formData.append(`variants[${index}][price]`, variant.price);
+        formData.append(`variants[${index}][quantity]`, variant.quantity);
+
+        if (variant.image) {
+          formData.append(`variants[${index}][image]`, variant.image);
+        }
+
+        variant.attributes.forEach((attr, attrIndex) => {
+          formData.append(
+            `variants[${index}][attributes][${attrIndex}][attribute_name]`,
+            attr.attribute_name
+          );
+          formData.append(
+            `variants[${index}][attributes][${attrIndex}][value]`,
+            attr.value
+          );
+        });
+      });
+
+      // Append images
+      selectedFiles.forEach((file, index) => {
+        formData.append(`images[${index}]`, file);
+      });
+
+      const response = await templateService.postTemplates(formData);
+
       if (response.status === 201) {
-        console.log("Template created successfully:", response.data);
         Toast.fire({
           icon: "success",
           title: "Template created successfully",
         });
+        // Reset form hoặc chuyển hướng
+        navigate("/seller/templates");
       }
     } catch (error) {
       console.error("Error creating template:", error);
       Toast.fire({
         icon: "error",
-        title: "Error creating template",
+        title: error.response?.data?.message || "Error creating template",
       });
     }
   };
@@ -305,9 +317,8 @@ export default function AddTemplate() {
     );
   };
 
-  const handleShowModal = (modalId) => {
-    const modal = new Modal(document.getElementById(modalId));
-    modal.show();
+  const handleRemoveImage = (index) => {
+    setSelectedFiles((prevFiles) => prevFiles.filter((_, i) => i !== index));
   };
 
   return (
@@ -366,12 +377,16 @@ export default function AddTemplate() {
                     {/* Description */}
                     <div className="form-group mb-4">
                       <label>Description</label>
-                      <textarea
-                        className="form-control"
-                        rows={5}
-                        defaultValue={"Update description here"}
-                        placeholder="Enter product description"
-                        formcontrolname="description"
+                      <CKEditor
+                        editor={ClassicEditor}
+                        data={description}
+                        onChange={(event, editor) => {
+                          const data = editor.getData();
+                          setDescription(data);
+                        }}
+                        config={{
+                          placeholder: "Enter product description",
+                        }}
                       />
                     </div>
                     {/* Category */}
@@ -388,24 +403,68 @@ export default function AddTemplate() {
                     </div>
                     {/* Product Images */}
                     <div className="form-group mb-4">
-                      <label>Product Image URL</label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        placeholder="Enter image URL"
-                        value={imageUrl}
-                        onChange={handleImageUrlChange}
-                      />
-                      {imageUrl && (
-                        <div className="mt-2">
-                          <img
-                            src={imageUrl}
-                            alt="Product preview"
-                            style={{ maxWidth: "200px" }}
-                          />
-                        </div>
-                      )}
+                      <label>Product Images (max 8 images)</label>
+                      <div className="input-group">
+                        <input
+                          type="file"
+                          className="d-none"
+                          accept="image/*"
+                          multiple
+                          id="fileInput"
+                          onChange={(e) => handleImageUpload(e)}
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          id="selectButton"
+                          onClick={() =>
+                            document.getElementById("fileInput").click()
+                          }
+                        >
+                          Select Images
+                        </button>
+                        <span className="ml-2 align-middle" id="fileCount">
+                          {selectedFiles.length} files selected
+                        </span>
+                      </div>
+                      <div
+                        id="imagePreview"
+                        className="text-center text-muted mt-2"
+                      >
+                        {loading ? (
+                          <div>Loading...</div>
+                        ) : selectedFiles.length > 0 ? (
+                          selectedFiles.map((file, index) => (
+                            <div
+                              key={index}
+                              className="position-relative d-inline-block"
+                            >
+                              <img
+                                src={URL.createObjectURL(file)}
+                                alt={`preview-${index}`}
+                                style={{
+                                  width: "100px",
+                                  height: "100px",
+                                  objectFit: "cover",
+                                  margin: "5px",
+                                }}
+                              />
+                              <button
+                                type="button"
+                                className="btn btn-danger btn-sm position-absolute"
+                                style={{ top: 0, right: 0 }}
+                                onClick={() => handleRemoveImage(index)}
+                              >
+                                <i class="fa-solid fa-circle-xmark"></i>
+                              </button>
+                            </div>
+                          ))
+                        ) : (
+                          "No images uploaded yet."
+                        )}
+                      </div>
                     </div>
+
                     {/* Size Chart Image */}
 
                     {/* Options */}
@@ -629,6 +688,32 @@ export default function AddTemplate() {
                                             }}
                                           />
                                         )}
+                                        <input
+                                          type="file"
+                                          className="form-control d-none"
+                                          accept="image/*"
+                                          onChange={(e) => {
+                                            const file = e.target.files[0];
+                                            if (file) {
+                                              const reader = new FileReader();
+                                              reader.onloadend = () => {
+                                                handleImageUrlVariant(
+                                                  size.label,
+                                                  reader.result
+                                                );
+                                              };
+                                              reader.readAsDataURL(file);
+                                            }
+                                          }}
+                                          id={`fileInput-${size.label}`}
+                                          data-label={size.label}
+                                        />
+                                        <label
+                                          className="btn btn-sm btn-primary mx-2"
+                                          htmlFor={`fileInput-${size.label}`}
+                                        >
+                                          Upload Image
+                                        </label>
                                       </div>
                                     </div>
                                   ))}
@@ -640,11 +725,17 @@ export default function AddTemplate() {
                     </div>
                     {/* Variants Section */}
                     <div className="mt-4">
-                      {/* <h3 className="h4 mb-4">
+                      <h3 className="h4 mb-4">
                         Variant Combinations. Current SKUs:
-                        <span className="text-danger">6</span>
+                        <span
+                          className={`text-${
+                            variants.length > 300 ? "danger" : "primary"
+                          }`}
+                        >
+                          {variants.length}
+                        </span>
                         (Max 300 SKUs)
-                      </h3> */}
+                      </h3>
                       <button
                         type="button"
                         className="btn btn-primary mb-4"
@@ -793,7 +884,6 @@ export default function AddTemplate() {
                                     defaultValue={20}
                                     value={variant.price}
                                     onChange={(e) =>
-
                                       setVariants(
                                         variants.map((v) =>
                                           v.variant === variant.variant

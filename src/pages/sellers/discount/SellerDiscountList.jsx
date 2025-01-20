@@ -145,7 +145,7 @@ export default function SellerDiscountList() {
                                 <p>Product ID: {discount.product_id}</p>
                                 <div>
                                   <Link
-                                    to={`/admin/updateProduct/${discount.product_id}`}
+                                    to={`/seller/updateProduct/${discount.product_id}`}
                                     className="text-decoration-none text-dark mb-2"
                                   >
                                     {discount.product_name}
@@ -212,7 +212,7 @@ export default function SellerDiscountList() {
                                   />
                                 </button>
                                 <Link
-                                  to={`/admin/updateDiscount/${discount.id}`}
+                                  to={`/seller/updateDiscount/${discount.id}`}
                                   className="btn btn-secondary btn-sm mx-1"
                                   title="Edit"
                                 >
